@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Foto IA - Cámara Inteligente</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f7fa;
+      min-height: 100vh;
+    }
+
+    h2 {
+      color: #1a2c3e;
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+
+    .backend-config {
+      margin-bottom: 16px;
+    }
+
+    .backend-config label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #5c6f87;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .backend-config input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 14px;
+      font-family: monospace;
+      background: white;
+    }
+
+    .video-container {
+      position: relative;
+      background: #000;
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 12px;
+      aspect-ratio: 4 / 3;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .fallback-message {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 12px;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 12px;
+      padding: 14px;
+      cursor: pointer;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 40px;
+      font-size: 16px;
+      font-weight: 600;
+      font-family: inherit;
+      transition: all 0.2s ease;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    button:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    .status {
+      margin-top: 16px;
+      padding: 10px;
+      border-radius: 12px;
+      font-size: 14px;
+      text-align: center;
+      background: #f1f5f9;
+      color: #475569;
+    }
+
+    .status.error {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .status.success {
+      background: #dcfce7;
+      color: #16a34a;
+    }
+
+    .result-container {
+      margin-top: 20px;
+      display: none;
+    }
+
+    .result-container img {
+      width: 100%;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .result-container h3 {
+      margin-bottom: 10px;
+      font-size: 16px;
+      color: #1a2c3e;
+    }
+
+    .file-upload-btn {
+      background: #64748b;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h2>📸 Foto IA</h2>
+
+  <div class="backend-config">
+    <label>🔗 Backend URL</label>
+    <input id="backend" value="http://localhost:8080" placeholder="Ej: http://localhost:8080">
+  </div>
+
+  <div class="video-container">
+    <video id="video" autoplay playsinline muted></video>
+  </div>
+
+  <button id="takePhotoBtn">
+    📸 Tomar Foto
+  </button>
+
+  <button id="uploadFileBtn" class="file-upload-btn" style="display: none;">
+    📁 Seleccionar imagen (fallback)
+  </button>
+
+  <div id="status" class="status">🟡 Iniciando cámara...</div>
+
+  <div id="resultContainer" class="result-container">
+    <h3>✨ Resultado:</h3>
+    <img id="resultImage">
+  </div>
+
+  <input type="file" id="fileInput" accept="image/*" style="display: none;">
+
+  <script>
+    (function () {
+      const video = document.getElementById("video");
+      const takePhotoBtn = document.getElementById("takePhotoBtn");
+      const uploadFileBtn = document.getElementById("uploadFileBtn");
+      const fileInput = document.getElementById("fileInput");
+      const statusDiv = document.getElementById("status");
+      const resultContainer = document.getElementById("resultContainer");
+      const resultImage = document.getElementById("resultImage");
+      const backendInput = document.getElementById("backend");
+
+      let currentStream = null;
+
+      function setStatus(message, type = 'info') {
+        statusDiv.textContent = message;
+        statusDiv.className = 'status';
+        if (type === 'error') statusDiv.classList.add('error');
+        if (type === 'success') statusDiv.classList.add('success');
+        console.log(`[${type}] ${message}`);
+      }
+
+      // Iniciar cámara con manejo de errores para iOS
+      async function startCamera() {
+        setStatus("📷 Solicitando acceso a la cámara...");
+
+        // Cerrar stream anterior si existe
+        if (currentStream) {
+          currentStream.getTracks().forEach(track => track.stop());
+        }
+
+        try {
+          const constraints = {
+            video: {
+              facingMode: "environment", // Prefiere cámara trasera
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            }
+          };
+
+          const stream = await navigator.mediaDevices.getUserMedia(constraints);
+          video.srcObject = stream;
+          currentStream = stream;
+
+          setStatus("✅ Cámara lista. Toca para tomar foto.", "success");
+          takePhotoBtn.disabled = false;
+          uploadFileBtn.style.display = 'none';
+
+        } catch (err) {
+          console.error("Error al acceder a cámara:", err);
+
+          let errorMsg = "❌ No se pudo acceder a la cámara. ";
+
+          if (err.name === 'NotAllowedError') {
+            errorMsg += "Permiso denegado. Revisa la configuración de privacidad de Safari.";
+          } else if (err.name === 'NotFoundError') {
+            errorMsg += "No se encontró ninguna cámara en este dispositivo.";
+          } else if (err.name === 'NotReadableError') {
+            errorMsg += "La cámara ya está siendo usada por otra aplicación.";
+          } else {
+            errorMsg += "Tu dispositivo no soporta acceso a cámara o no estás usando HTTPS.";
+          }
+
+          setStatus(errorMsg, "error");
+          takePhotoBtn.disabled = true;
+
+          // Mostrar opción de subir archivo como fallback
+          uploadFileBtn.style.display = 'block';
+          uploadFileBtn.textContent = '📁 Usar galería (fallback)';
+        }
+      }
+
+      // Tomar foto del video
+      async function takePhoto() {
+        if (!video.videoWidth || !video.videoHeight) {
+          setStatus("⚠️ Espera a que la cámara esté lista", "error");
+          return;
+        }
+
+        setStatus("📸 Tomando foto...");
+
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Opcional: dibujar un overlay de cuadrícula o algo?
+
+        canvas.toBlob(async (blob) => {
+          if (blob) {
+            await sendToBackend(blob);
+          } else {
+            setStatus("❌ Error al capturar la foto", "error");
+          }
+        }, "image/png");
+      }
+
+      // Subir desde archivo (fallback para iOS sin cámara)
+      function selectFile() {
+        fileInput.click();
+      }
+
+      async function handleFileSelected(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        setStatus("📁 Procesando imagen seleccionada...");
+        await sendToBackend(file);
+        fileInput.value = ''; // Limpiar para poder seleccionar el mismo archivo otra vez
+      }
+
+      // Enviar al backend
+      async function sendToBackend(imageFile) {
+        let backend = backendInput.value.trim();
+        if (!backend) {
+          setStatus("❌ Configura la URL del backend", "error");
+          return;
+        }
+
+        backend = backend.replace(/\/$/, "");
+
+        setStatus("🔄 Procesando con IA...");
+        takePhotoBtn.disabled = true;
+
+        const formData = new FormData();
+        formData.append("image", imageFile, "photo.png");
+        formData.append("prompt", ""); // Puedes agregar un prompt personalizado aquí
+
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 segundos timeout
+
+          const res = await fetch(backend + "/edit-image", {
+            method: "POST",
+            body: formData,
+            signal: controller.signal
+          });
+
+          clearTimeout(timeoutId);
+
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+          }
+
+          const data = await res.json();
+
+          if (data.error) {
+            throw new Error(data.error);
+          }
+
+          if (!data.image_b64) {
+            throw new Error("El backend no devolvió image_b64");
+          }
+
+          // Mostrar resultado
+          resultImage.src = "data:image/png;base64," + data.image_b64;
+          resultContainer.style.display = "block";
+          setStatus("✅ Imagen procesada exitosamente", "success");
+
+          // Scroll al resultado
+          resultContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        } catch (err) {
+          console.error("Error en el request:", err);
+
+          if (err.name === 'AbortError') {
+            setStatus("⏰ Timeout: El backend tardó demasiado en responder", "error");
+          } else if (err.message.includes('fetch')) {
+            setStatus("🔌 No se pudo conectar al backend. Verifica que esté corriendo en " + backend, "error");
+          } else {
+            setStatus("❌ Error: " + err.message, "error");
+          }
+
+        } finally {
+          takePhotoBtn.disabled = false;
+        }
+      }
+
+      // Event listeners
+      takePhotoBtn.addEventListener("click", takePhoto);
+      uploadFileBtn.addEventListener("click", selectFile);
+      fileInput.addEventListener("change", handleFileSelected);
+
+      // Intentar iniciar cámara automáticamente
+      startCamera();
+
+      // Opcional: Permitir recargar cámara si hay error
+      window.addEventListener('load', () => {
+        // Si el video no se carga después de 3 segundos, mostrar mensaje más claro
+        setTimeout(() => {
+          if (!video.srcObject && !video.videoWidth) {
+            setStatus("💡 Tip: Si estás en iPad, asegúrate de usar HTTPS y dar permisos de cámara. También puedes usar el botón 'Usar galería'", "error");
+            uploadFileBtn.style.display = 'block';
+          }
+        }, 3000);
+      });
+
+      // Manejar cuando la página se oculta para liberar cámara
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && currentStream) {
+          // Opcional: pausar video cuando no se ve para ahorrar recursos
+          video.pause();
+        } else if (!document.hidden && currentStream) {
+          video.play().catch(e => console.log("No se pudo reanudar video", e));
+        }
+      });
+
+    })();
+  </script>
+
+</body>
+
+</html>
