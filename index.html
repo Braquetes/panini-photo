@@ -517,7 +517,7 @@
         
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 segundos para IA
+          const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 segundos para IA
           
           const res = await fetch(backend + "/edit-image", {
             method: "POST",
