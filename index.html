@@ -50,6 +50,32 @@
       background: white;
     }
 
+    .option-selector {
+      margin-bottom: 12px;
+    }
+
+    .option-selector label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #5c6f87;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .option-selector select {
+      width: 100%;
+      padding: 12px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 14px;
+      background: white;
+      font-family: inherit;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
     .camera-selector {
       margin-bottom: 12px;
     }
@@ -167,6 +193,17 @@
       margin-top: 8px;
       color: #5c6f87;
     }
+
+    .selected-option {
+      margin-top: 8px;
+      padding: 8px;
+      background: #e0e7ff;
+      border-radius: 8px;
+      font-size: 12px;
+      text-align: center;
+      color: #3730a3;
+      display: none;
+    }
   </style>
 </head>
 
@@ -177,6 +214,17 @@
   <div class="backend-config">
     <label>🔗 Backend URL</label>
     <input id="backend" value="https://api-gemini.difoaxaca.gob.mx" placeholder="https://api-gemini.difoaxaca.gob.mx">
+  </div>
+
+  <div class="option-selector">
+    <label>🎨 Seleccionar efecto</label>
+    <select id="optionSelect">
+      <option value="1">🃏 CARTA PANINI</option>
+      <option value="2">🐐 FOTO CON MESSI</option>
+      <option value="3">👑 FOTO CON CRISTIANO RONALDO</option>
+      <option value="4">⚡ FOTO CON MBAPPÉ</option>
+    </select>
+    <div class="selected-option" id="selectedOptionMsg"></div>
   </div>
 
   <div class="camera-selector">
@@ -220,9 +268,42 @@
       const backendInput = document.getElementById("backend");
       const cameraSelect = document.getElementById("cameraSelect");
       const cameraInfo = document.getElementById("cameraInfo");
+      const optionSelect = document.getElementById("optionSelect");
+      const selectedOptionMsg = document.getElementById("selectedOptionMsg");
 
       let currentStream = null;
-      let availableDevices = []; // Guardar dispositivos disponibles
+      let availableDevices = [];
+
+      // Mostrar mensaje de opción seleccionada
+      function updateSelectedOptionMessage() {
+        const optionValue = optionSelect.value;
+        const optionText = optionSelect.options[optionSelect.selectedIndex].text;
+        
+        selectedOptionMsg.style.display = 'block';
+        
+        switch(optionValue) {
+          case '1':
+            selectedOptionMsg.innerHTML = '🃏 Efecto seleccionado: CARTA PANINI - Tu foto se convertirá en una tarjeta coleccionable';
+            break;
+          case '2':
+            selectedOptionMsg.innerHTML = '🐐 Efecto seleccionado: FOTO CON MESSI - Aparecerás junto a Lionel Messi';
+            break;
+          case '3':
+            selectedOptionMsg.innerHTML = '👑 Efecto seleccionado: FOTO CON CRISTIANO RONALDO - Aparecerás junto a CR7';
+            break;
+          case '4':
+            selectedOptionMsg.innerHTML = '⚡ Efecto seleccionado: FOTO CON MBAPPÉ - Aparecerás junto a Kylian Mbappé';
+            break;
+          default:
+            selectedOptionMsg.innerHTML = 'Selecciona un efecto';
+        }
+      }
+
+      // Escuchar cambios en la opción
+      optionSelect.addEventListener('change', updateSelectedOptionMessage);
+      
+      // Inicializar mensaje
+      updateSelectedOptionMessage();
 
       function setStatus(message, type = 'info') {
         statusDiv.textContent = message;
@@ -233,10 +314,8 @@
         console.log(`[${type}] ${message}`);
       }
 
-      // Obtener todas las cámaras disponibles
       async function getAvailableCameras() {
         try {
-          // Primero pedir permisos para poder listar dispositivos
           await navigator.mediaDevices.getUserMedia({ video: true });
           
           const devices = await navigator.mediaDevices.enumerateDevices();
@@ -255,7 +334,6 @@
         }
       }
 
-      // Actualizar el selector de cámaras
       function updateCameraSelector(cameras) {
         cameraSelect.innerHTML = '';
         
@@ -270,10 +348,8 @@
           const option = document.createElement('option');
           option.value = camera.deviceId;
           
-          // Identificar tipo de cámara por el label
           let label = camera.label || `Cámara ${index + 1}`;
           
-          // Simplificar nombres comunes
           if (label.toLowerCase().includes('front') || label.toLowerCase().includes('facetime')) {
             label = '🤳 Frontal - ' + label;
           } else if (label.toLowerCase().includes('back') || label.toLowerCase().includes('rear')) {
@@ -296,9 +372,7 @@
         return cameras;
       }
 
-      // Iniciar cámara con deviceId específico
       async function startCameraWithDevice(deviceId) {
-        // Cerrar stream anterior
         if (currentStream) {
           currentStream.getTracks().forEach(track => track.stop());
         }
@@ -314,7 +388,6 @@
           video.srcObject = stream;
           currentStream = stream;
           
-          // Esperar a que el video esté listo
           await new Promise((resolve) => {
             video.onloadedmetadata = () => {
               video.play();
@@ -333,23 +406,19 @@
         }
       }
 
-      // Inicializar: listar cámaras y configurar selector
       async function initialize() {
         setStatus("🔍 Detectando cámaras disponibles...", "info");
         
         try {
-          // Primero obtener permisos
           const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
           tempStream.getTracks().forEach(track => track.stop());
           
-          // Obtener lista de cámaras
           const cameras = await getAvailableCameras();
           availableDevices = cameras;
           
           if (cameras.length > 0) {
             updateCameraSelector(cameras);
             
-            // Auto-seleccionar primera cámara (generalmente trasera en iOS)
             const defaultCamera = cameras.find(c => 
               c.label.toLowerCase().includes('back') || 
               c.label.toLowerCase().includes('rear')
@@ -358,7 +427,6 @@
             cameraSelect.value = defaultCamera.deviceId;
             await startCameraWithDevice(defaultCamera.deviceId);
           } else {
-            // Fallback sin detección
             setStatus("⚠️ No se detectaron cámaras específicas, usando cámara por defecto", "error");
             await startCameraWithDevice(null);
           }
@@ -382,7 +450,6 @@
         }
       }
 
-      // Escuchar cambios en el selector de cámara
       cameraSelect.addEventListener('change', async (e) => {
         const deviceId = e.target.value;
         if (deviceId) {
@@ -391,7 +458,6 @@
         }
       });
 
-      // Tomar foto
       async function takePhoto() {
         if (!video.videoWidth || !video.videoHeight) {
           setStatus("⚠️ Espera a que la cámara esté lista", "error");
@@ -416,7 +482,6 @@
         }, "image/png");
       }
 
-      // Subir archivo fallback
       function selectFile() {
         fileInput.click();
       }
@@ -430,7 +495,6 @@
         fileInput.value = '';
       }
 
-      // Enviar al backend
       async function sendToBackend(imageFile) {
         let backend = backendInput.value.trim();
         if (!backend) {
@@ -440,16 +504,20 @@
         
         backend = backend.replace(/\/$/, "");
         
-        setStatus("🔄 Procesando con IA...");
+        // Obtener la opción seleccionada (valor 1,2,3,4)
+        const selectedOption = optionSelect.value;
+        
+        setStatus(`🔄 Procesando con IA (Opción ${selectedOption})...`);
         takePhotoBtn.disabled = true;
         
         const formData = new FormData();
         formData.append("image", imageFile, "photo.png");
-        formData.append("prompt", "");
+        formData.append("option", selectedOption); // Enviar la opción al backend
+        formData.append("prompt", ""); // Mantener por compatibilidad
         
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30000);
+          const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 segundos para IA
           
           const res = await fetch(backend + "/edit-image", {
             method: "POST",
@@ -494,15 +562,12 @@
         }
       }
 
-      // Event listeners
       takePhotoBtn.addEventListener("click", takePhoto);
       uploadFileBtn.addEventListener("click", selectFile);
       fileInput.addEventListener("change", handleFileSelected);
       
-      // Inicializar
       initialize();
       
-      // Detectar cuando se pierde la cámara
       navigator.mediaDevices.addEventListener('devicechange', () => {
         setStatus("🔄 Detectando cambios en dispositivos...", "info");
         initialize();
