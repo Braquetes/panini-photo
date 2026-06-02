@@ -212,18 +212,6 @@
       display: none;
     }
 
-    .result-container img {
-      width: 100%;
-      border-radius: 16px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
-
-    .result-container h3 {
-      margin-bottom: 10px;
-      font-size: 16px;
-      color: #1a2c3e;
-    }
-
     .file-upload-btn {
       background: #64748b;
       margin-top: 8px;
@@ -310,6 +298,102 @@
     .id-info.show {
       display: block;
     }
+
+    /* Estilos para la tarjeta Panini */
+    .card-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      padding: 1.5rem 0;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
+    }
+
+    .card-container {
+      position: relative;
+      width: 340px;
+      height: 460px;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
+    }
+
+    .card-bg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 1;
+    }
+
+    .card-fallback {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #5ecfcc 0%, #3bb8b5 100%);
+      z-index: 0;
+    }
+
+    .card-player-img {
+      position: absolute;
+      bottom: 90px;
+      left: 30px;
+      width: 280px;
+      min-height: 330px;
+      border-radius: 14px;
+      object-fit: contain;
+      z-index: 2;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .overlay-name {
+      position: absolute;
+      bottom: 56px;
+      left: 32px;
+      right: 110px;
+      border-radius: 20px;
+      text-align: center;
+      padding: 7px 10px;
+      font-family: 'Arial Black', Arial, sans-serif;
+      font-weight: 900;
+      font-size: 14px;
+      letter-spacing: 1px;
+      color: #fff;
+      text-transform: uppercase;
+      pointer-events: none;
+      user-select: none;
+      width: 200px;
+      z-index: 3;
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    .overlay-dob {
+      position: absolute;
+      bottom: 26px;
+      left: 32px;
+      width: 140px;
+      border-radius: 14px;
+      text-align: center;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: 0.5px;
+      pointer-events: none;
+      user-select: none;
+      z-index: 3;
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    .btn-descargar {
+      background: #10b981;
+      margin-top: 8px;
+    }
+
+    .btn-descargar:hover {
+      background: #059669;
+    }
   </style>
 </head>
 
@@ -358,9 +442,22 @@
 
   <div id="status" class="status">🟡 Iniciando cámara...</div>
 
+  <!-- Contenedor para resultados (normal) -->
   <div id="resultContainer" class="result-container">
     <h3>✨ Resultado:</h3>
     <img id="resultImage">
+  </div>
+
+  <!-- Contenedor para tarjeta Panini -->
+  <div id="paniniContainer" class="card-wrap" style="display: none;">
+    <div class="card-container" id="card">
+      <img class="card-bg" src="uploads/panini.JPG" alt="Panini WC26 Mexico card background" id="cardBg">
+      <div id="cardFallback" class="card-fallback" style="display: none;"></div>
+      <img class="card-player-img" id="playerPhoto" src="" alt="Foto jugador">
+      <div class="overlay-name" id="playerName">NOMBRE APELLIDO</div>
+      <div class="overlay-dob" id="playerDob">00/00/0000</div>
+    </div>
+    <button id="downloadCardBtn" class="btn-descargar">📥 Descargar Tarjeta</button>
   </div>
 
   <input type="file" id="fileInput" accept="image/*" style="display: none;">
@@ -379,6 +476,8 @@
   <!-- Info del ID de registro -->
   <div id="idInfo" class="id-info"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
   <script>
     (function() {
       const video = document.getElementById("video");
@@ -388,6 +487,13 @@
       const statusDiv = document.getElementById("status");
       const resultContainer = document.getElementById("resultContainer");
       const resultImage = document.getElementById("resultImage");
+      const paniniContainer = document.getElementById("paniniContainer");
+      const playerPhoto = document.getElementById("playerPhoto");
+      const playerName = document.getElementById("playerName");
+      const playerDob = document.getElementById("playerDob");
+      const cardBg = document.getElementById("cardBg");
+      const cardFallback = document.getElementById("cardFallback");
+      const downloadCardBtn = document.getElementById("downloadCardBtn");
       const backendInput = document.getElementById("backend");
       const cameraSelect = document.getElementById("cameraSelect");
       const cameraInfo = document.getElementById("cameraInfo");
@@ -406,13 +512,19 @@
       let availableDevices = [];
       let timerInterval = null;
       let isTakingPhoto = false;
-      let pendingImageBlob = null;
       let currentRegistroId = null;
+      let currentNobgUrl = null;
+      let currentNombre = "";
+      let currentFecha = "";
 
-      // Mostrar mensaje de opción seleccionada
+      // Manejar error de fondo
+      cardBg.onerror = function() {
+        cardBg.style.display = 'none';
+        cardFallback.style.display = 'block';
+      };
+
       function updateSelectedOptionMessage() {
         const optionValue = optionSelect.value;
-        
         selectedOptionMsg.style.display = 'block';
         
         switch(optionValue) {
@@ -446,7 +558,6 @@
         console.log(`[${type}] ${message}`);
       }
 
-      // Mostrar ID en la interfaz
       function showIdInfo(message, isError = false) {
         idInfo.textContent = message;
         idInfo.style.backgroundColor = isError ? '#dc2626' : '#1e293b';
@@ -476,7 +587,6 @@
         });
       }
 
-      // Crear registro en la base de datos (solo para panini)
       async function crearRegistro(nombre, fechaNacimiento) {
         const backend = backendInput.value.trim().replace(/\/$/, "");
         
@@ -506,7 +616,6 @@
         }
       }
 
-      // Tomar foto con temporizador
       async function takePhotoWithTimer() {
         if (isTakingPhoto) {
           setStatus("⚠️ Ya hay una foto en proceso", "warning");
@@ -520,16 +629,11 @@
 
         const selectedOption = optionSelect.value;
         
-        // Si es opción panini, pedir nombre y fecha primero
         if (selectedOption === "panini") {
-          // Limpiar campos
           nombreJugador.value = "";
           fechaNacimientoJugador.value = "";
-          
-          // Mostrar modal
           modalDatos.classList.add("active");
           
-          // Esperar a que el usuario confirme
           return new Promise((resolve) => {
             const onConfirm = async () => {
               modalDatos.classList.remove("active");
@@ -545,6 +649,12 @@
                 return;
               }
               
+              currentNombre = nombre;
+              currentFecha = fecha;
+              playerName.textContent = nombre.toUpperCase();
+              const [year, month, day] = fecha.split('-');
+              playerDob.textContent = `${day}/${month}/${year}`;
+              
               try {
                 setStatus("📝 Creando registro en bitácora...", "info");
                 const id = await crearRegistro(nombre, fecha);
@@ -552,7 +662,6 @@
                 showIdInfo(`✅ Registro creado! ID: ${id} - Guardaremos tu tarjeta`);
                 setStatus(`✅ Registro ID: ${id}. Ahora toma tu foto`, "success");
                 resolve(true);
-                // Proceder a tomar la foto
                 await takePhotoInternal();
               } catch (error) {
                 setStatus("❌ Error al crear registro: " + error.message, "error");
@@ -572,13 +681,11 @@
             btnCancelarDatos.addEventListener("click", onCancel);
           });
         } else {
-          // Para otras opciones, no pedir datos
           currentRegistroId = null;
           await takePhotoInternal();
         }
       }
 
-      // Función interna para tomar la foto
       async function takePhotoInternal() {
         if (isTakingPhoto) return;
         
@@ -598,7 +705,6 @@
         const ctx = canvas.getContext("2d");
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         
-        // Efecto flash
         const flashOverlay = document.createElement('div');
         flashOverlay.style.position = 'absolute';
         flashOverlay.style.top = '0';
@@ -630,16 +736,10 @@
       async function getAvailableCameras() {
         try {
           await navigator.mediaDevices.getUserMedia({ video: true });
-          
           const devices = await navigator.mediaDevices.enumerateDevices();
           const cameras = devices.filter(device => device.kind === 'videoinput');
-          
           console.log("Cámaras encontradas:", cameras);
-          
-          if (cameras.length === 0) {
-            throw new Error("No se encontraron cámaras");
-          }
-          
+          if (cameras.length === 0) throw new Error("No se encontraron cámaras");
           return cameras;
         } catch (err) {
           console.error("Error al listar cámaras:", err);
@@ -649,7 +749,6 @@
 
       function updateCameraSelector(cameras) {
         cameraSelect.innerHTML = '';
-        
         if (cameras.length === 0) {
           cameraSelect.innerHTML = '<option value="">❌ No se detectaron cámaras</option>';
           cameraSelect.disabled = true;
@@ -660,58 +759,42 @@
         cameras.forEach((camera, index) => {
           const option = document.createElement('option');
           option.value = camera.deviceId;
-          
           let label = camera.label || `Cámara ${index + 1}`;
-          
           if (label.toLowerCase().includes('front') || label.toLowerCase().includes('facetime')) {
             label = '🤳 Frontal - ' + label;
           } else if (label.toLowerCase().includes('back') || label.toLowerCase().includes('rear')) {
             label = '📷 Trasera - ' + label;
-          } else if (label.toLowerCase().includes('wide')) {
-            label = '🌄 Gran Angular - ' + label;
-          } else if (label.toLowerCase().includes('telephoto')) {
-            label = '🔭 Telefoto - ' + label;
           } else {
             label = '🎥 ' + label;
           }
-          
           option.textContent = label;
           cameraSelect.appendChild(option);
         });
-        
         cameraSelect.disabled = false;
         cameraInfo.textContent = `📱 ${cameras.length} cámara(s) disponible(s)`;
-        
-        return cameras;
       }
 
       async function startCameraWithDevice(deviceId) {
         if (currentStream) {
           currentStream.getTracks().forEach(track => track.stop());
         }
-        
         try {
           const constraints = {
             video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: "environment" }
           };
-          
           setStatus("📷 Iniciando cámara...", "info");
-          
           const stream = await navigator.mediaDevices.getUserMedia(constraints);
           video.srcObject = stream;
           currentStream = stream;
-          
           await new Promise((resolve) => {
             video.onloadedmetadata = () => {
               video.play();
               resolve();
             };
           });
-          
-          setStatus("✅ Cámara lista. Presiona 'Tomar Foto' y tendrás 3 segundos para acomodarte.", "success");
+          setStatus("✅ Cámara lista. Presiona 'Tomar Foto' y tendrás 3 segundos.", "success");
           takePhotoBtn.disabled = false;
           uploadFileBtn.style.display = 'none';
-          
         } catch (err) {
           console.error("Error al iniciar cámara:", err);
           setStatus("❌ No se pudo iniciar la cámara seleccionada", "error");
@@ -721,53 +804,33 @@
 
       async function initialize() {
         setStatus("🔍 Detectando cámaras disponibles...", "info");
-        
         try {
           const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
           tempStream.getTracks().forEach(track => track.stop());
-          
           const cameras = await getAvailableCameras();
-          availableDevices = cameras;
-          
           if (cameras.length > 0) {
             updateCameraSelector(cameras);
-            
             const defaultCamera = cameras.find(c => 
-              c.label.toLowerCase().includes('back') || 
-              c.label.toLowerCase().includes('rear')
+              c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('rear')
             ) || cameras[0];
-            
             cameraSelect.value = defaultCamera.deviceId;
             await startCameraWithDevice(defaultCamera.deviceId);
           } else {
-            setStatus("⚠️ No se detectaron cámaras específicas, usando cámara por defecto", "error");
+            setStatus("⚠️ No se detectaron cámaras", "error");
             await startCameraWithDevice(null);
           }
-          
         } catch (err) {
           console.error("Error en inicialización:", err);
-          
-          let errorMsg = "❌ No se pudo acceder a la cámara. ";
-          
-          if (err.name === 'NotAllowedError') {
-            errorMsg += "Permiso denegado. Revisa la configuración de privacidad de Safari.";
-          } else if (err.name === 'NotFoundError') {
-            errorMsg += "No se encontró ninguna cámara en este dispositivo.";
-          } else {
-            errorMsg += "Tu dispositivo no soporta acceso a cámara o no estás usando HTTPS.";
-          }
-          
-          setStatus(errorMsg, "error");
+          setStatus("❌ No se pudo acceder a la cámara. " + err.message, "error");
           takePhotoBtn.disabled = true;
           uploadFileBtn.style.display = 'block';
         }
       }
 
       cameraSelect.addEventListener('change', async (e) => {
-        const deviceId = e.target.value;
-        if (deviceId) {
+        if (e.target.value) {
           setStatus("🔄 Cambiando de cámara...", "info");
-          await startCameraWithDevice(deviceId);
+          await startCameraWithDevice(e.target.value);
         }
       });
 
@@ -778,7 +841,6 @@
       async function handleFileSelected(event) {
         const file = event.target.files[0];
         if (!file) return;
-        
         setStatus("📁 Procesando imagen seleccionada...");
         await sendToBackend(file);
         fileInput.value = '';
@@ -790,11 +852,9 @@
           setStatus("❌ Configura la URL del backend", "error");
           return;
         }
-        
         backend = backend.replace(/\/$/, "");
         
         const selectedOption = optionSelect.value;
-        
         setStatus(`🔄 Procesando con IA (Opción ${selectedOption})...`);
         takePhotoBtn.disabled = true;
         
@@ -802,52 +862,49 @@
         formData.append("image", imageFile, "photo.png");
         formData.append("option", selectedOption);
         formData.append("prompt", "");
-        
-        // Enviar registro_id si existe
         if (currentRegistroId) {
           formData.append("registro_id", currentRegistroId);
-          console.log("Enviando registro_id:", currentRegistroId);
         }
         
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 120000);
-          
           const res = await fetch(backend + "/edit-image", {
             method: "POST",
             body: formData,
             signal: controller.signal
           });
-          
           clearTimeout(timeoutId);
           
-          if (!res.ok) {
-            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-          }
-          
+          if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
           const data = await res.json();
+          if (data.error) throw new Error(data.error);
+          if (!data.image_b64) throw new Error("El backend no devolvió image_b64");
           
-          if (data.error) {
-            throw new Error(data.error);
+          const imageUrl = "data:image/png;base64," + data.image_b64;
+          
+          // Mostrar según la opción
+          if (selectedOption === "panini") {
+            // Ocultar resultado normal, mostrar tarjeta
+            resultContainer.style.display = "none";
+            paniniContainer.style.display = "flex";
+            playerPhoto.src = imageUrl;
+            setStatus("✅ Tarjeta Panini generada exitosamente", "success");
+            if (currentRegistroId) {
+              showIdInfo(`🎉 Tarjeta guardada! ID: ${currentRegistroId} - ${currentNombre}`);
+            }
+          } else {
+            // Mostrar imagen normal
+            paniniContainer.style.display = "none";
+            resultContainer.style.display = "block";
+            resultImage.src = imageUrl;
+            setStatus("✅ Imagen procesada exitosamente", "success");
           }
           
-          if (!data.image_b64) {
-            throw new Error("El backend no devolvió image_b64");
-          }
-          
-          resultImage.src = "data:image/png;base64," + data.image_b64;
-          resultContainer.style.display = "block";
-          setStatus("✅ Imagen procesada exitosamente", "success");
           resultContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          
-          // Mostrar mensaje final con ID si existe
-          if (currentRegistroId) {
-            showIdInfo(`🎉 Tarjeta guardada! ID: ${currentRegistroId} - Tu imagen ha sido registrada`);
-          }
           
         } catch (err) {
           console.error("Error:", err);
-          
           if (err.name === 'AbortError') {
             setStatus("⏰ Timeout: El backend tardó demasiado", "error");
           } else if (err.message.includes('fetch')) {
@@ -855,12 +912,45 @@
           } else {
             setStatus("❌ Error: " + err.message, "error");
           }
-          
         } finally {
           takePhotoBtn.disabled = false;
         }
       }
 
+      // Descargar tarjeta como PNG
+      async function downloadCard() {
+        const card = document.getElementById("card");
+        if (!card) return;
+        
+        downloadCardBtn.disabled = true;
+        downloadCardBtn.textContent = "⏳ Generando...";
+        
+        try {
+          const canvas = await html2canvas(card, {
+            scale: 3,
+            backgroundColor: null,
+            useCORS: true,
+            logging: false
+          });
+          
+          const link = document.createElement('a');
+          const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+          const nombreClean = currentNombre.replace(/\s+/g, '_').substring(0, 30) || "tarjeta";
+          link.download = `panini_${nombreClean}_${timestamp}.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+          
+          setStatus("✨ Tarjeta descargada exitosamente", "success");
+        } catch (error) {
+          console.error("Error al generar PNG:", error);
+          setStatus("❌ Error al generar la imagen", "error");
+        } finally {
+          downloadCardBtn.disabled = false;
+          downloadCardBtn.textContent = "📥 Descargar Tarjeta";
+        }
+      }
+
+      downloadCardBtn.addEventListener("click", downloadCard);
       takePhotoBtn.addEventListener("click", takePhotoWithTimer);
       uploadFileBtn.addEventListener("click", selectFile);
       fileInput.addEventListener("change", handleFileSelected);
