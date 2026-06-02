@@ -341,7 +341,7 @@
             bottom: 100px;
             left: -35px;
             width: 330px;
-            min-height: 390px;
+            min-height: 360px;
             border-radius: 14px;
             object-fit: fill;
             z-index: 2;
@@ -435,13 +435,13 @@
         <img id="resultImage">
     </div>
 
-    <div id="paniniContainer" class="card-wrap" style="display: none;">
+    <div id="paniniContainer" class="card-wrap" style="display: ;">
         <div class="card-container" id="card">
             <img class="card-bg" src="uploads/panini.JPG" alt="Panini WC26 Mexico card background" id="cardBg">
             <div id="cardFallback" class="card-fallback" style="display: none;"></div>
             <img class="card-player-img" id="playerPhoto" src="" alt="Foto jugador">
             <div class="overlay-name" id="playerName">NOMBRE COMPLETO</div>
-            <div class="overlay-dob" id="playerDob">00/00/0000</div>
+            <div class="overlay-dob">Mundial Social del DIF Oaxaca </div>
         </div>
         <button id="printCardBtn" class="btn-imprimir">🖨️ Descargar Tarjeta</button>
         <button id="printDirectBtn" class="btn-imprimir" style="background: #6366f1;">🖨️ Imprimir
@@ -454,7 +454,7 @@
         <div class="modal-content">
             <h3>🃏 Datos para tu tarjeta Panini</h3>
             <input type="text" id="nombreJugador" placeholder="Nombre completo" maxlength="100">
-            <input type="date" id="fechaNacimientoJugador">
+            <!-- <input type="date" id="fechaNacimientoJugador"> -->
             <button id="btnConfirmarDatos" style="background: #3b82f6;">Continuar →</button>
             <button id="btnCancelarDatos" style="background: #94a3b8;">Cancelar</button>
         </div>
@@ -475,7 +475,7 @@
             const paniniContainer = document.getElementById("paniniContainer");
             const playerPhoto = document.getElementById("playerPhoto");
             const playerName = document.getElementById("playerName");
-            const playerDob = document.getElementById("playerDob");
+            // const playerDob = document.getElementById("playerDob");
             const cardBg = document.getElementById("cardBg");
             const cardFallback = document.getElementById("cardFallback");
             const printCardBtn = document.getElementById("printCardBtn");
@@ -488,7 +488,7 @@
             const timerNumber = document.getElementById("timerNumber");
             const modalDatos = document.getElementById("modalDatos");
             const nombreJugador = document.getElementById("nombreJugador");
-            const fechaNacimientoJugador = document.getElementById("fechaNacimientoJugador");
+            // const fechaNacimientoJugador = document.getElementById("fechaNacimientoJugador");
             const btnConfirmarDatos = document.getElementById("btnConfirmarDatos");
             const btnCancelarDatos = document.getElementById("btnCancelarDatos");
             const idInfo = document.getElementById("idInfo");
@@ -549,12 +549,15 @@
                 });
             }
 
-            async function crearRegistro(nombre, fecha) {
+            async function crearRegistro(nombre) {
                 const backend = backendInput.value.trim().replace(/\/$/, "");
                 const res = await fetch(backend + "/crear-registro", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ nombre, fecha_nacimiento: fecha, opcion: "panini" })
+                    body: JSON.stringify({
+                        nombre,
+                        opcion: "panini"
+                    })
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error);
@@ -571,14 +574,14 @@
                     const onConfirm = async () => {
                         modalDatos.classList.remove("active");
                         const nombre = nombreJugador.value.trim();
-                        const fecha = fechaNacimientoJugador.value;
-                        if (!nombre || !fecha) { setStatus("Nombre y fecha requeridos", "error"); return; }
+                        if (!nombre) {
+                            setStatus("Nombre requerido", "error");
+                            return;
+                        }
                         currentNombre = nombre;
                         playerName.textContent = nombre.toUpperCase();
-                        const [y, m, d] = fecha.split('-');
-                        playerDob.textContent = `${d}/${m}/${y}`;
                         try {
-                            currentRegistroId = await crearRegistro(nombre, fecha);
+                            currentRegistroId = await crearRegistro(nombre);
                             showIdInfo("Registro ID: " + currentRegistroId);
                             await takePhotoInternal();
                         } catch (e) { setStatus("Error: " + e.message, "error"); }
