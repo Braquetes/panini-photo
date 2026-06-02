@@ -116,7 +116,6 @@
       object-fit: cover;
     }
 
-    /* Temporizador overlay */
     .timer-overlay {
       position: absolute;
       top: 0;
@@ -247,6 +246,70 @@
       color: #3730a3;
       display: none;
     }
+
+    /* Modal para nombre y fecha */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      margin: 20px;
+      padding: 24px;
+      border-radius: 24px;
+      max-width: 350px;
+      width: 100%;
+    }
+
+    .modal-content h3 {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .modal-content input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1.5px solid #e2e8f0;
+      margin-bottom: 12px;
+      font-size: 16px;
+    }
+
+    .modal-content button {
+      margin-top: 8px;
+    }
+
+    .id-info {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      background: #1e293b;
+      color: white;
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 14px;
+      text-align: center;
+      z-index: 100;
+      display: none;
+    }
+
+    .id-info.show {
+      display: block;
+    }
   </style>
 </head>
 
@@ -262,10 +325,10 @@
   <div class="option-selector">
     <label>🎨 Seleccionar efecto</label>
     <select id="optionSelect">
-      <option value="1">🃏 CARTA PANINI</option>
-      <option value="2">🐐 FOTO CON MESSI</option>
-      <option value="3">👑 FOTO CON CRISTIANO RONALDO</option>
-      <option value="4">⚡ FOTO CON MBAPPÉ</option>
+      <option value="panini">🃏 CARTA PANINI</option>
+      <option value="messi">🐐 FOTO CON MESSI</option>
+      <option value="cristiano">👑 FOTO CON CRISTIANO RONALDO</option>
+      <option value="mbappe">⚡ FOTO CON MBAPPÉ</option>
     </select>
     <div class="selected-option" id="selectedOptionMsg"></div>
   </div>
@@ -302,6 +365,20 @@
 
   <input type="file" id="fileInput" accept="image/*" style="display: none;">
 
+  <!-- Modal para nombre y fecha (solo para opción panini) -->
+  <div id="modalDatos" class="modal">
+    <div class="modal-content">
+      <h3>🃏 Datos para tu tarjeta Panini</h3>
+      <input type="text" id="nombreJugador" placeholder="Nombre completo" maxlength="100">
+      <input type="date" id="fechaNacimientoJugador">
+      <button id="btnConfirmarDatos" style="background: #3b82f6;">Continuar →</button>
+      <button id="btnCancelarDatos" style="background: #94a3b8;">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- Info del ID de registro -->
+  <div id="idInfo" class="id-info"></div>
+
   <script>
     (function() {
       const video = document.getElementById("video");
@@ -318,11 +395,19 @@
       const selectedOptionMsg = document.getElementById("selectedOptionMsg");
       const timerOverlay = document.getElementById("timerOverlay");
       const timerNumber = document.getElementById("timerNumber");
+      const modalDatos = document.getElementById("modalDatos");
+      const nombreJugador = document.getElementById("nombreJugador");
+      const fechaNacimientoJugador = document.getElementById("fechaNacimientoJugador");
+      const btnConfirmarDatos = document.getElementById("btnConfirmarDatos");
+      const btnCancelarDatos = document.getElementById("btnCancelarDatos");
+      const idInfo = document.getElementById("idInfo");
 
       let currentStream = null;
       let availableDevices = [];
       let timerInterval = null;
       let isTakingPhoto = false;
+      let pendingImageBlob = null;
+      let currentRegistroId = null;
 
       // Mostrar mensaje de opción seleccionada
       function updateSelectedOptionMessage() {
@@ -331,16 +416,16 @@
         selectedOptionMsg.style.display = 'block';
         
         switch(optionValue) {
-          case '1':
+          case 'panini':
             selectedOptionMsg.innerHTML = '🃏 Efecto seleccionado: CARTA PANINI - Tu foto se convertirá en una tarjeta coleccionable';
             break;
-          case '2':
+          case 'messi':
             selectedOptionMsg.innerHTML = '🐐 Efecto seleccionado: FOTO CON MESSI - Aparecerás junto a Lionel Messi';
             break;
-          case '3':
+          case 'cristiano':
             selectedOptionMsg.innerHTML = '👑 Efecto seleccionado: FOTO CON CRISTIANO RONALDO - Aparecerás junto a CR7';
             break;
-          case '4':
+          case 'mbappe':
             selectedOptionMsg.innerHTML = '⚡ Efecto seleccionado: FOTO CON MBAPPÉ - Aparecerás junto a Kylian Mbappé';
             break;
           default:
@@ -361,7 +446,16 @@
         console.log(`[${type}] ${message}`);
       }
 
-      // Mostrar temporizador
+      // Mostrar ID en la interfaz
+      function showIdInfo(message, isError = false) {
+        idInfo.textContent = message;
+        idInfo.style.backgroundColor = isError ? '#dc2626' : '#1e293b';
+        idInfo.classList.add('show');
+        setTimeout(() => {
+          idInfo.classList.remove('show');
+        }, 5000);
+      }
+
       async function startTimer() {
         return new Promise((resolve) => {
           let count = 3;
@@ -372,7 +466,6 @@
             count--;
             if (count >= 1) {
               timerNumber.textContent = count;
-              // Vibrar si el dispositivo lo soporta
               if (navigator.vibrate) navigator.vibrate(100);
             } else {
               clearInterval(timerInterval);
@@ -383,7 +476,37 @@
         });
       }
 
-      // Tomar foto CON temporizador
+      // Crear registro en la base de datos (solo para panini)
+      async function crearRegistro(nombre, fechaNacimiento) {
+        const backend = backendInput.value.trim().replace(/\/$/, "");
+        
+        try {
+          const response = await fetch(backend + "/crear-registro", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              nombre: nombre,
+              fecha_nacimiento: fechaNacimiento,
+              opcion: "panini"
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(data.error || "Error al crear registro");
+          }
+          
+          return data.id;
+        } catch (error) {
+          console.error("Error creando registro:", error);
+          throw error;
+        }
+      }
+
+      // Tomar foto con temporizador
       async function takePhotoWithTimer() {
         if (isTakingPhoto) {
           setStatus("⚠️ Ya hay una foto en proceso", "warning");
@@ -395,15 +518,77 @@
           return;
         }
 
+        const selectedOption = optionSelect.value;
+        
+        // Si es opción panini, pedir nombre y fecha primero
+        if (selectedOption === "panini") {
+          // Limpiar campos
+          nombreJugador.value = "";
+          fechaNacimientoJugador.value = "";
+          
+          // Mostrar modal
+          modalDatos.classList.add("active");
+          
+          // Esperar a que el usuario confirme
+          return new Promise((resolve) => {
+            const onConfirm = async () => {
+              modalDatos.classList.remove("active");
+              btnConfirmarDatos.removeEventListener("click", onConfirm);
+              btnCancelarDatos.removeEventListener("click", onCancel);
+              
+              const nombre = nombreJugador.value.trim();
+              const fecha = fechaNacimientoJugador.value;
+              
+              if (!nombre || !fecha) {
+                setStatus("❌ Nombre y fecha son requeridos para la tarjeta Panini", "error");
+                resolve(false);
+                return;
+              }
+              
+              try {
+                setStatus("📝 Creando registro en bitácora...", "info");
+                const id = await crearRegistro(nombre, fecha);
+                currentRegistroId = id;
+                showIdInfo(`✅ Registro creado! ID: ${id} - Guardaremos tu tarjeta`);
+                setStatus(`✅ Registro ID: ${id}. Ahora toma tu foto`, "success");
+                resolve(true);
+                // Proceder a tomar la foto
+                await takePhotoInternal();
+              } catch (error) {
+                setStatus("❌ Error al crear registro: " + error.message, "error");
+                resolve(false);
+              }
+            };
+            
+            const onCancel = () => {
+              modalDatos.classList.remove("active");
+              btnConfirmarDatos.removeEventListener("click", onConfirm);
+              btnCancelarDatos.removeEventListener("click", onCancel);
+              setStatus("❌ Operación cancelada", "error");
+              resolve(false);
+            };
+            
+            btnConfirmarDatos.addEventListener("click", onConfirm);
+            btnCancelarDatos.addEventListener("click", onCancel);
+          });
+        } else {
+          // Para otras opciones, no pedir datos
+          currentRegistroId = null;
+          await takePhotoInternal();
+        }
+      }
+
+      // Función interna para tomar la foto
+      async function takePhotoInternal() {
+        if (isTakingPhoto) return;
+        
         isTakingPhoto = true;
         takePhotoBtn.disabled = true;
         
         setStatus("⏰ Preparando cámara, en 3 segundos se tomará la foto...", "warning");
         
-        // Iniciar temporizador
         await startTimer();
         
-        // Tomar la foto
         setStatus("📸 Tomando foto...", "info");
         
         const canvas = document.createElement("canvas");
@@ -413,7 +598,7 @@
         const ctx = canvas.getContext("2d");
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         
-        // Efecto de flash visual
+        // Efecto flash
         const flashOverlay = document.createElement('div');
         flashOverlay.style.position = 'absolute';
         flashOverlay.style.top = '0';
@@ -618,6 +803,12 @@
         formData.append("option", selectedOption);
         formData.append("prompt", "");
         
+        // Enviar registro_id si existe
+        if (currentRegistroId) {
+          formData.append("registro_id", currentRegistroId);
+          console.log("Enviando registro_id:", currentRegistroId);
+        }
+        
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 120000);
@@ -649,6 +840,11 @@
           setStatus("✅ Imagen procesada exitosamente", "success");
           resultContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
           
+          // Mostrar mensaje final con ID si existe
+          if (currentRegistroId) {
+            showIdInfo(`🎉 Tarjeta guardada! ID: ${currentRegistroId} - Tu imagen ha sido registrada`);
+          }
+          
         } catch (err) {
           console.error("Error:", err);
           
@@ -665,7 +861,6 @@
         }
       }
 
-      // Nueva función para tomar foto con temporizador
       takePhotoBtn.addEventListener("click", takePhotoWithTimer);
       uploadFileBtn.addEventListener("click", selectFile);
       fileInput.addEventListener("change", handleFileSelected);
