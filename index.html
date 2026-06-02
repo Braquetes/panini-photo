@@ -116,6 +116,44 @@
       object-fit: cover;
     }
 
+    /* Temporizador overlay */
+    .timer-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      border-radius: 16px;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .timer-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .timer-number {
+      font-size: 80px;
+      font-weight: bold;
+      color: white;
+      background: rgba(0, 0, 0, 0.6);
+      width: 120px;
+      height: 120px;
+      border-radius: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: monospace;
+      box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+    }
+
     button {
       width: 100%;
       margin-top: 12px;
@@ -163,6 +201,11 @@
     .status.info {
       background: #dbeafe;
       color: #2563eb;
+    }
+
+    .status.warning {
+      background: #fef3c7;
+      color: #d97706;
     }
 
     .result-container {
@@ -237,10 +280,13 @@
 
   <div class="video-container">
     <video id="video" autoplay playsinline muted></video>
+    <div id="timerOverlay" class="timer-overlay">
+      <div class="timer-number" id="timerNumber">3</div>
+    </div>
   </div>
 
   <button id="takePhotoBtn" disabled>
-    📸 Tomar Foto
+    📸 Tomar Foto (con temporizador)
   </button>
 
   <button id="uploadFileBtn" class="file-upload-btn" style="display: none;">
@@ -270,14 +316,17 @@
       const cameraInfo = document.getElementById("cameraInfo");
       const optionSelect = document.getElementById("optionSelect");
       const selectedOptionMsg = document.getElementById("selectedOptionMsg");
+      const timerOverlay = document.getElementById("timerOverlay");
+      const timerNumber = document.getElementById("timerNumber");
 
       let currentStream = null;
       let availableDevices = [];
+      let timerInterval = null;
+      let isTakingPhoto = false;
 
       // Mostrar mensaje de opción seleccionada
       function updateSelectedOptionMessage() {
         const optionValue = optionSelect.value;
-        const optionText = optionSelect.options[optionSelect.selectedIndex].text;
         
         selectedOptionMsg.style.display = 'block';
         
@@ -299,10 +348,7 @@
         }
       }
 
-      // Escuchar cambios en la opción
       optionSelect.addEventListener('change', updateSelectedOptionMessage);
-      
-      // Inicializar mensaje
       updateSelectedOptionMessage();
 
       function setStatus(message, type = 'info') {
@@ -311,7 +357,89 @@
         if (type === 'error') statusDiv.classList.add('error');
         if (type === 'success') statusDiv.classList.add('success');
         if (type === 'info') statusDiv.classList.add('info');
+        if (type === 'warning') statusDiv.classList.add('warning');
         console.log(`[${type}] ${message}`);
+      }
+
+      // Mostrar temporizador
+      async function startTimer() {
+        return new Promise((resolve) => {
+          let count = 3;
+          timerNumber.textContent = count;
+          timerOverlay.classList.add('active');
+          
+          timerInterval = setInterval(() => {
+            count--;
+            if (count >= 1) {
+              timerNumber.textContent = count;
+              // Vibrar si el dispositivo lo soporta
+              if (navigator.vibrate) navigator.vibrate(100);
+            } else {
+              clearInterval(timerInterval);
+              timerOverlay.classList.remove('active');
+              resolve();
+            }
+          }, 1000);
+        });
+      }
+
+      // Tomar foto CON temporizador
+      async function takePhotoWithTimer() {
+        if (isTakingPhoto) {
+          setStatus("⚠️ Ya hay una foto en proceso", "warning");
+          return;
+        }
+        
+        if (!video.videoWidth || !video.videoHeight) {
+          setStatus("⚠️ Espera a que la cámara esté lista", "error");
+          return;
+        }
+
+        isTakingPhoto = true;
+        takePhotoBtn.disabled = true;
+        
+        setStatus("⏰ Preparando cámara, en 3 segundos se tomará la foto...", "warning");
+        
+        // Iniciar temporizador
+        await startTimer();
+        
+        // Tomar la foto
+        setStatus("📸 Tomando foto...", "info");
+        
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Efecto de flash visual
+        const flashOverlay = document.createElement('div');
+        flashOverlay.style.position = 'absolute';
+        flashOverlay.style.top = '0';
+        flashOverlay.style.left = '0';
+        flashOverlay.style.width = '100%';
+        flashOverlay.style.height = '100%';
+        flashOverlay.style.backgroundColor = 'white';
+        flashOverlay.style.zIndex = '20';
+        flashOverlay.style.pointerEvents = 'none';
+        flashOverlay.style.transition = 'opacity 0.2s ease';
+        document.querySelector('.video-container').appendChild(flashOverlay);
+        
+        setTimeout(() => {
+          flashOverlay.style.opacity = '0';
+          setTimeout(() => flashOverlay.remove(), 300);
+        }, 50);
+        
+        canvas.toBlob(async (blob) => {
+          if (blob) {
+            await sendToBackend(blob);
+          } else {
+            setStatus("❌ Error al capturar la foto", "error");
+          }
+          isTakingPhoto = false;
+          takePhotoBtn.disabled = false;
+        }, "image/png");
       }
 
       async function getAvailableCameras() {
@@ -395,7 +523,7 @@
             };
           });
           
-          setStatus("✅ Cámara lista. Toca para tomar foto.", "success");
+          setStatus("✅ Cámara lista. Presiona 'Tomar Foto' y tendrás 3 segundos para acomodarte.", "success");
           takePhotoBtn.disabled = false;
           uploadFileBtn.style.display = 'none';
           
@@ -458,30 +586,6 @@
         }
       });
 
-      async function takePhoto() {
-        if (!video.videoWidth || !video.videoHeight) {
-          setStatus("⚠️ Espera a que la cámara esté lista", "error");
-          return;
-        }
-
-        setStatus("📸 Tomando foto...");
-        
-        const canvas = document.createElement("canvas");
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        canvas.toBlob(async (blob) => {
-          if (blob) {
-            await sendToBackend(blob);
-          } else {
-            setStatus("❌ Error al capturar la foto", "error");
-          }
-        }, "image/png");
-      }
-
       function selectFile() {
         fileInput.click();
       }
@@ -504,7 +608,6 @@
         
         backend = backend.replace(/\/$/, "");
         
-        // Obtener la opción seleccionada (valor 1,2,3,4)
         const selectedOption = optionSelect.value;
         
         setStatus(`🔄 Procesando con IA (Opción ${selectedOption})...`);
@@ -512,12 +615,12 @@
         
         const formData = new FormData();
         formData.append("image", imageFile, "photo.png");
-        formData.append("option", selectedOption); // Enviar la opción al backend
-        formData.append("prompt", ""); // Mantener por compatibilidad
+        formData.append("option", selectedOption);
+        formData.append("prompt", "");
         
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 segundos para IA
+          const timeoutId = setTimeout(() => controller.abort(), 120000);
           
           const res = await fetch(backend + "/edit-image", {
             method: "POST",
@@ -562,7 +665,8 @@
         }
       }
 
-      takePhotoBtn.addEventListener("click", takePhoto);
+      // Nueva función para tomar foto con temporizador
+      takePhotoBtn.addEventListener("click", takePhotoWithTimer);
       uploadFileBtn.addEventListener("click", selectFile);
       fileInput.addEventListener("change", handleFileSelected);
       
