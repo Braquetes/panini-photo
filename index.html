@@ -3,744 +3,219 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Foto IA - Cámara Inteligente</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mundial Social - Tabla de archivos</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        * {
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #f5f7fa;
-            min-height: 100vh;
+            background: #f8f9fc;
+            font-family: 'Segoe UI', system-ui, sans-serif;
         }
 
-        h2 {
-            color: #1a2c3e;
-            margin-bottom: 16px;
-            font-weight: 600;
-        }
-
-        .backend-config {
-            margin-bottom: 16px;
-        }
-
-        .backend-config label {
-            display: block;
-            font-size: 12px;
-            font-weight: 600;
-            color: #5c6f87;
-            margin-bottom: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .backend-config input {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1.5px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 14px;
-            font-family: monospace;
-            background: white;
-        }
-
-        .option-selector {
-            margin-bottom: 12px;
-        }
-
-        .option-selector label {
-            display: block;
-            font-size: 12px;
-            font-weight: 600;
-            color: #5c6f87;
-            margin-bottom: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .option-selector select {
-            width: 100%;
-            padding: 12px;
-            border: 1.5px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 14px;
-            background: white;
-            font-family: inherit;
-            cursor: pointer;
+        .table th {
+            background-color: #2c3e66;
+            color: white;
             font-weight: 500;
-        }
-
-        .camera-selector {
-            margin-bottom: 12px;
-        }
-
-        .camera-selector label {
-            display: block;
-            font-size: 12px;
-            font-weight: 600;
-            color: #5c6f87;
-            margin-bottom: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .camera-selector select {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1.5px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 14px;
-            background: white;
-            font-family: inherit;
-            cursor: pointer;
-        }
-
-        .video-container {
-            position: relative;
-            background: #000;
-            border-radius: 16px;
-            overflow: hidden;
-            margin-bottom: 12px;
-            aspect-ratio: 4 / 3;
-        }
-
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .timer-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
-            border-radius: 16px;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-        }
-
-        .timer-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .timer-number {
-            font-size: 80px;
-            font-weight: bold;
-            color: white;
-            background: rgba(0, 0, 0, 0.6);
-            width: 120px;
-            height: 120px;
-            border-radius: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: monospace;
-            box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
-        }
-
-        button {
-            width: 100%;
-            margin-top: 12px;
-            padding: 14px;
-            cursor: pointer;
-            background: #3b82f6;
-            color: white;
             border: none;
-            border-radius: 40px;
-            font-size: 16px;
+        }
+
+        .table td {
+            vertical-align: middle;
+        }
+
+        .btn-ver {
+            padding: 0.25rem 0.75rem;
+            border-radius: 2rem;
+            font-size: 0.8rem;
+        }
+
+        .id-col {
             font-weight: 600;
-            font-family: inherit;
-            transition: all 0.2s ease;
+            color: #2c3e66;
         }
 
-        button:active {
-            transform: scale(0.98);
+        .ruta-col {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            word-break: break-all;
         }
 
-        button:disabled {
-            background: #94a3b8;
-            cursor: not-allowed;
-        }
-
-        .status {
-            margin-top: 16px;
-            padding: 10px;
-            border-radius: 12px;
-            font-size: 14px;
-            text-align: center;
-            background: #f1f5f9;
-            color: #475569;
-        }
-
-        .status.error {
-            background: #fee2e2;
-            color: #dc2626;
-        }
-
-        .status.success {
-            background: #dcfce7;
-            color: #16a34a;
-        }
-
-        .status.info {
-            background: #dbeafe;
-            color: #2563eb;
-        }
-
-        .status.warning {
-            background: #fef3c7;
-            color: #d97706;
-        }
-
-        .result-container {
-            margin-top: 20px;
-            display: none;
-        }
-
-        .result-container img {
-            width: 100%;
-            border-radius: 16px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        .file-upload-btn {
-            background: #64748b;
-            margin-top: 8px;
-        }
-
-        .camera-info {
-            font-size: 11px;
-            text-align: center;
-            margin-top: 8px;
-            color: #5c6f87;
-        }
-
-        .selected-option {
-            margin-top: 8px;
-            padding: 8px;
-            background: #e0e7ff;
-            border-radius: 8px;
-            font-size: 12px;
-            text-align: center;
-            color: #3730a3;
-            display: none;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: white;
-            margin: 20px;
-            padding: 24px;
-            border-radius: 24px;
-            max-width: 350px;
-            width: 100%;
-        }
-
-        .modal-content h3 {
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .modal-content input {
-            width: 100%;
-            padding: 12px;
-            border-radius: 12px;
-            border: 1.5px solid #e2e8f0;
-            margin-bottom: 12px;
-            font-size: 16px;
-        }
-
-        .modal-content button {
-            margin-top: 8px;
-        }
-
-        .id-info {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-            background: #1e293b;
-            color: white;
-            padding: 12px;
-            border-radius: 12px;
-            font-size: 14px;
-            text-align: center;
-            z-index: 100;
-            display: none;
-        }
-
-        .id-info.show {
-            display: block;
-        }
-
-        .card-wrap {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 24px;
-            padding: 1.5rem 0;
-        }
-
-        .card-container {
-            position: relative;
-            width: 340px;
-            height: 460px;
-            border-radius: 18px;
-            overflow: hidden;
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
-        }
-
-        .card-bg {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            z-index: 1;
-        }
-
-        .card-fallback {
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, #5ecfcc 0%, #3bb8b5 100%);
-            z-index: 0;
-        }
-
-        .card-player-img {
-            position: absolute;
-            bottom: 100px;
-            left: -35px;
-            width: 330px;
-            min-height: 340px;
-            border-radius: 14px;
-            object-fit: fill;
-            z-index: 2;
-            pointer-events: none;
-            user-select: none;
-        }
-
-        .overlay-name {
-            position: absolute;
-            bottom: 58px;
-            left: 30px;
-            border-radius: 20px;
-            text-align: center;
-            padding: 7px 10px;
-            font-family: 'Arial Black', Arial, sans-serif;
-            font-weight: 900;
-            font-size: 14px;
-            letter-spacing: 1px;
-            color: #fff;
-            text-transform: uppercase;
-            width: auto;
-            z-index: 3;
-        }
-
-        .overlay-dob {
-            position: absolute;
-            bottom: 30px;
-            left: 30px;
-            border-radius: 14px;
-            text-align: center;
-            padding: 4px 10px;
-            font-size: 11px;
-            font-weight: 600;
-            color: #fff;
-            letter-spacing: 0.5px;
-            z-index: 3;
-        }
-
-        .btn-imprimir {
-            background: #10b981;
-            margin-top: 8px;
-        }
-
-        .btn-imprimir:hover {
-            background: #059669;
+        footer {
+            font-size: 0.8rem;
+            border-top: 1px solid #e3e6f0;
         }
     </style>
 </head>
 
 <body>
-    <h2>📸 Foto IA</h2>
 
-    <div class="backend-config">
-        <label>🔗 Backend URL</label>
-        <input id="backend" value="https://api-gemini.difoaxaca.gob.mx">
-    </div>
+    <nav class="navbar navbar-light bg-white shadow-sm">
+        <div class="container">
+            <span class="navbar-brand">
+                <i class="bi bi-table me-2"></i> Mundial Social · DIF Oaxaca
+            </span>
+            <button class="btn btn-outline-secondary btn-sm" id="btnRefrescar">
+                <i class="bi bi-arrow-clockwise"></i> Recargar
+            </button>
+        </div>
+    </nav>
 
-    <div class="option-selector">
-        <label>🎨 Seleccionar efecto</label>
-        <select id="optionSelect">
-            <option value="panini">🃏 CARTA PANINI</option>
-            <option value="messi">🐐 FOTO CON MESSI</option>
-            <option value="cristiano">👑 FOTO CON CRISTIANO RONALDO</option>
-            <option value="mbappe">⚡ FOTO CON MBAPPÉ</option>
-        </select>
-        <div class="selected-option" id="selectedOptionMsg"></div>
-    </div>
+    <div class="container my-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h5 fw-semibold mb-0"><i class="bi bi-folder2-open me-1"></i> Lista de archivos</h2>
+            <span class="badge bg-secondary" id="contadorBadge">Cargando...</span>
+        </div>
 
-    <div class="camera-selector">
-        <label>🎥 Seleccionar cámara</label>
-        <select id="cameraSelect" disabled>
-            <option value="">🔍 Detectando cámaras...</option>
-        </select>
-        <div class="camera-info" id="cameraInfo"></div>
-    </div>
+        <div id="errorMsg" class="alert alert-danger d-none" role="alert"></div>
 
-    <div class="video-container">
-        <video id="video" autoplay playsinline muted></video>
-        <div id="timerOverlay" class="timer-overlay">
-            <div class="timer-number" id="timerNumber">3</div>
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle" id="tablaArchivos">
+                <thead>
+                    <tr>
+                        <th style="width: 80px">ID</th>
+                        <th>Documento / Tipo</th>
+                        <th>Ruta del archivo</th>
+                        <th style="width: 100px">Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaBody">
+                    <tr>
+                        <td colspan="4" class="text-center py-4">
+                            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                            Cargando datos...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <button id="takePhotoBtn" disabled>📸 Tomar Foto (con temporizador)</button>
-    <button id="uploadFileBtn" class="file-upload-btn" style="display: none;">📁 Seleccionar imagen (fallback)</button>
+    <footer class="text-center text-muted py-3">
+        <small>Ordenado por ID (más reciente primero) | Los datos se obtienen directamente desde la API</small>
+    </footer>
 
-    <div id="status" class="status">🟡 Iniciando cámara...</div>
-
-    <div id="resultContainer" class="result-container">
-        <h3>✨ Resultado:</h3>
-        <img id="resultImage">
-    </div>
-
-    <div id="paniniContainer" class="card-wrap" style="display: none;">
-        <div class="card-container" id="card">
-            <img class="card-bg" src="uploads/panini.JPG" alt="Panini WC26 Mexico card background" id="cardBg">
-            <div id="cardFallback" class="card-fallback" style="display: none;"></div>
-            <img class="card-player-img" id="playerPhoto" src="" alt="Foto jugador">
-            <div class="overlay-name" id="playerName">NOMBRE COMPLETO</div>
-            <div class="overlay-dob">Mundial Social del DIF Oaxaca </div>
-        </div>
-        <button id="printCardBtn" class="btn-imprimir">🖨️ Descargar Tarjeta</button>
-        <button id="printDirectBtn" class="btn-imprimir" style="background: #6366f1;">🖨️ Imprimir
-            Tarjeta</button>
-    </div>
-
-    <input type="file" id="fileInput" accept="image/*" style="display: none;">
-
-    <div id="modalDatos" class="modal">
-        <div class="modal-content">
-            <h3>🃏 Datos para tu tarjeta Panini</h3>
-            <input type="text" id="nombreJugador" placeholder="Nombre completo" maxlength="100">
-            <!-- <input type="date" id="fechaNacimientoJugador"> -->
-            <button id="btnConfirmarDatos" style="background: #3b82f6;">Continuar →</button>
-            <button id="btnCancelarDatos" style="background: #94a3b8;">Cancelar</button>
-        </div>
-    </div>
-
-    <div id="idInfo" class="id-info"></div>
-
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script>
-        (function () {
-            const video = document.getElementById("video");
-            const takePhotoBtn = document.getElementById("takePhotoBtn");
-            const uploadFileBtn = document.getElementById("uploadFileBtn");
-            const fileInput = document.getElementById("fileInput");
-            const statusDiv = document.getElementById("status");
-            const resultContainer = document.getElementById("resultContainer");
-            const resultImage = document.getElementById("resultImage");
-            const paniniContainer = document.getElementById("paniniContainer");
-            const playerPhoto = document.getElementById("playerPhoto");
-            const playerName = document.getElementById("playerName");
-            // const playerDob = document.getElementById("playerDob");
-            const cardBg = document.getElementById("cardBg");
-            const cardFallback = document.getElementById("cardFallback");
-            const printCardBtn = document.getElementById("printCardBtn");
-            const backendInput = document.getElementById("backend");
-            const cameraSelect = document.getElementById("cameraSelect");
-            const cameraInfo = document.getElementById("cameraInfo");
-            const optionSelect = document.getElementById("optionSelect");
-            const selectedOptionMsg = document.getElementById("selectedOptionMsg");
-            const timerOverlay = document.getElementById("timerOverlay");
-            const timerNumber = document.getElementById("timerNumber");
-            const modalDatos = document.getElementById("modalDatos");
-            const nombreJugador = document.getElementById("nombreJugador");
-            // const fechaNacimientoJugador = document.getElementById("fechaNacimientoJugador");
-            const btnConfirmarDatos = document.getElementById("btnConfirmarDatos");
-            const btnCancelarDatos = document.getElementById("btnCancelarDatos");
-            const idInfo = document.getElementById("idInfo");
+        const API_URL = "https://apifilemanager.difoaxaca.gob.mx/mundial_social/03062026";
+        const tablaBody = document.getElementById("tablaBody");
+        const contadorBadge = document.getElementById("contadorBadge");
+        const errorDiv = document.getElementById("errorMsg");
+        const btnRefrescar = document.getElementById("btnRefrescar");
 
-            let lastImageUrl = null;
-            let lastImageTimestamp = null;
+        function construirUrlImagen(ruta) {
+            // La ruta viene como "mundial_social/03062026/archivo.png"
+            // Se concatena con el dominio base
+            return "https://apifilemanager.difoaxaca.gob.mx/" + ruta;
+        }
 
-            let currentStream = null;
-            let isTakingPhoto = false;
-            let currentRegistroId = null;
-            let currentNombre = "";
+        async function cargarTabla() {
+            // Mostrar loading
+            tablaBody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center py-4">
+                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                        Cargando datos desde el servidor...
+                    </td>
+                </tr>
+            `;
+            errorDiv.classList.add("d-none");
+            contadorBadge.textContent = "Cargando...";
+            contadorBadge.className = "badge bg-secondary";
 
-            cardBg.onerror = function () {
-                cardBg.style.display = 'none';
-                cardFallback.style.display = 'block';
-            };
-
-            function updateSelectedOptionMessage() {
-                const val = optionSelect.value;
-                selectedOptionMsg.style.display = 'block';
-                if (val === 'panini') selectedOptionMsg.innerHTML = '🃏 CARTA PANINI - Tarjeta coleccionable';
-                else if (val === 'messi') selectedOptionMsg.innerHTML = '🐐 FOTO CON MESSI';
-                else if (val === 'cristiano') selectedOptionMsg.innerHTML = '👑 FOTO CON CRISTIANO RONALDO';
-                else if (val === 'mbappe') selectedOptionMsg.innerHTML = '⚡ FOTO CON MBAPPÉ';
-            }
-            optionSelect.addEventListener('change', updateSelectedOptionMessage);
-            updateSelectedOptionMessage();
-
-            function setStatus(msg, type) {
-                statusDiv.textContent = msg;
-                statusDiv.className = 'status';
-                if (type === 'error') statusDiv.classList.add('error');
-                if (type === 'success') statusDiv.classList.add('success');
-                if (type === 'warning') statusDiv.classList.add('warning');
-                console.log(msg);
-            }
-
-            function showIdInfo(msg) {
-                idInfo.textContent = msg;
-                idInfo.classList.add('show');
-                setTimeout(() => idInfo.classList.remove('show'), 5000);
-            }
-
-            async function startTimer() {
-                return new Promise((resolve) => {
-                    let count = 3;
-                    timerNumber.textContent = count;
-                    timerOverlay.classList.add('active');
-                    const interval = setInterval(() => {
-                        count--;
-                        if (count >= 1) timerNumber.textContent = count;
-                        else {
-                            clearInterval(interval);
-                            timerOverlay.classList.remove('active');
-                            resolve();
-                        }
-                    }, 1000);
-                });
-            }
-
-            async function crearRegistro(nombre) {
-                const backend = backendInput.value.trim().replace(/\/$/, "");
-                const res = await fetch(backend + "/crear-registro", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        nombre,
-                        opcion: "panini"
-                    })
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error);
-                return data.id;
-            }
-
-            async function takePhotoWithTimer() {
-                if (isTakingPhoto) return;
-                if (!video.videoWidth) { setStatus("Espera a la cámara", "error"); return; }
-
-                const option = optionSelect.value;
-                if (option === "panini") {
-                    modalDatos.classList.add("active");
-                    const onConfirm = async () => {
-                        modalDatos.classList.remove("active");
-                        const nombre = nombreJugador.value.trim();
-                        if (!nombre) {
-                            setStatus("Nombre requerido", "error");
-                            return;
-                        }
-                        currentNombre = nombre;
-                        playerName.textContent = nombre.toUpperCase();
-                        try {
-                            currentRegistroId = await crearRegistro(nombre);
-                            showIdInfo("Registro ID: " + currentRegistroId);
-                            await takePhotoInternal();
-                        } catch (e) { setStatus("Error: " + e.message, "error"); }
-                    };
-                    const onCancel = () => {
-                        modalDatos.classList.remove("active");
-                        setStatus("Cancelado", "error");
-                    };
-                    btnConfirmarDatos.onclick = onConfirm;
-                    btnCancelarDatos.onclick = onCancel;
-                } else {
-                    currentRegistroId = null;
-                    await takePhotoInternal();
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) {
+                    throw new Error(`Error HTTP ${response.status}: ${response.statusText}`);
                 }
-            }
+                const data = await response.json();
 
-            async function takePhotoInternal() {
-                isTakingPhoto = true;
-                takePhotoBtn.disabled = true;
-                setStatus("Preparando...", "warning");
-                await startTimer();
-                const canvas = document.createElement("canvas");
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                canvas.getContext("2d").drawImage(video, 0, 0);
-                canvas.toBlob(blob => sendToBackend(blob), "image/png");
-            }
-
-            async function sendToBackend(blob) {
-                let backend = backendInput.value.trim().replace(/\/$/, "");
-                const option = optionSelect.value;
-                setStatus("Procesando con IA...", "info");
-                const fd = new FormData();
-                fd.append("image", blob, "photo.png");
-                fd.append("option", option);
-                if (currentRegistroId) fd.append("registro_id", currentRegistroId);
-                try {
-                    const res = await fetch(backend + "/edit-image", { method: "POST", body: fd });
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data.error);
-                    const url = "data:image/png;base64," + data.image_b64;
-                    if (option === "panini") {
-                        resultContainer.style.display = "none";
-                        paniniContainer.style.display = "flex";
-                        playerPhoto.src = url;
-                        setStatus("Tarjeta generada", "success");
-                    } else {
-                        paniniContainer.style.display = "none";
-                        resultContainer.style.display = "block";
-                        resultImage.src = url;
-                        setStatus("Imagen generada", "success");
-                    }
-                } catch (e) { setStatus("Error: " + e.message, "error"); }
-                finally { takePhotoBtn.disabled = false; isTakingPhoto = false; }
-            }
-
-            async function downloadCard() {
-                const card = document.getElementById("card");
-                if (!card) { setStatus("No hay tarjeta", "error"); return; }
-                setStatus("Generando imagen...", "info");
-                printCardBtn.disabled = true;
-                printCardBtn.textContent = "⏳ Generando...";
-                try {
-                    const canvas = await html2canvas(card, { scale: 3, useCORS: true });
-                    const link = document.createElement("a");
-                    link.download = `tarjeta_${currentNombre.replace(/\s/g, '_') || 'panini'}.png`;
-                    link.href = canvas.toDataURL();
-                    link.click();
-                    setStatus("Imagen descargada", "success");
-                } catch (e) { setStatus("Error: " + e.message, "error"); }
-                finally {
-                    printCardBtn.disabled = false;
-                    printCardBtn.textContent = "🖨️ Descargar Tarjeta";
+                // Validar estructura
+                if (!data || !Array.isArray(data.archivos)) {
+                    throw new Error("La respuesta no contiene un array 'archivos' válido.");
                 }
-            }
 
-            async function printCard() {
-                const card = document.getElementById("card");
+                let archivos = data.archivos;
 
-                try {
-                    const canvas = await html2canvas(card, {
-                        scale: 3,
-                        useCORS: true
-                    });
-
-                    const imgData = canvas.toDataURL("image/png");
-
-                    const win = window.open();
-
-                    const img = win.document.createElement("img");
-                    img.src = imgData;
-                    img.style.width = "100%";
-
-                    win.document.body.style.margin = "0";
-                    win.document.body.appendChild(img);
-
-                    img.onload = () => {
-                        win.focus();
-                        win.print();
-                    };
-
-                } catch (e) {
-                    console.error(e);
+                if (archivos.length === 0) {
+                    tablaBody.innerHTML = `
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted">
+                                <i class="bi bi-inbox fs-4"></i><br>No se encontraron archivos
+                            </td>
+                        </tr>
+                    `;
+                    contadorBadge.textContent = "0 elementos";
+                    contadorBadge.className = "badge bg-secondary";
+                    return;
                 }
-            }
 
-            printCardBtn.addEventListener("click", downloadCard);
-            document.getElementById("printDirectBtn").addEventListener("click", printCard);
-            takePhotoBtn.addEventListener("click", takePhotoWithTimer);
-            uploadFileBtn.addEventListener("click", () => fileInput.click());
-            fileInput.addEventListener("change", e => { if (e.target.files[0]) sendToBackend(e.target.files[0]); });
+                // ORDENAR por ID de MAYOR a MENOR (el más grande arriba)
+                archivos.sort((a, b) => b.Id - a.Id);
 
-            async function startCamera(deviceId) {
-                if (currentStream) currentStream.getTracks().forEach(t => t.stop());
-                try {
-                    const constraints = deviceId ? { video: { deviceId: { exact: deviceId } } } : { video: { facingMode: "environment" } };
-                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                    video.srcObject = stream;
-                    currentStream = stream;
-                    setStatus("Cámara lista", "success");
-                    takePhotoBtn.disabled = false;
-                } catch (e) {
-                    setStatus("Error al iniciar cámara", "error");
-                    takePhotoBtn.disabled = true;
-                    uploadFileBtn.style.display = "block";
+                // Actualizar badge con cantidad
+                contadorBadge.textContent = `${archivos.length} elemento(s) · ID ↓`;
+                contadorBadge.className = "badge bg-primary";
+
+                // Construir filas de la tabla
+                let filasHtml = "";
+                for (const item of archivos) {
+                    const id = item.Id;
+                    const documento = item.Documento || "sin tipo";
+                    const ruta = item.Ruta;
+                    const urlCompleta = construirUrlImagen(ruta);
+                    // Extraer solo el nombre del archivo para mostrar más legible
+                    const nombreArchivo = ruta.split('/').pop();
+
+                    filasHtml += `
+                        <tr>
+                            <td class="id-col text-center fw-bold">${id}</td>
+                            <td>
+                                <span class="badge bg-light text-dark border px-3 py-2">
+                                    <i class="bi bi-file-image me-1"></i> ${documento}
+                                </span>
+                            </td>
+                            <td class="ruta-col">
+                                <code class="small">${ruta}</code>
+                                <br><small class="text-muted">📄 ${nombreArchivo}</small>
+                            </td>
+                            <td class="text-center">
+                                <a href="${urlCompleta}" target="_blank" class="btn btn-sm btn-outline-primary btn-ver">
+                                    <i class="bi bi-eye"></i> Ver
+                                </a>
+                            </td>
+                        </tr>
+                    `;
                 }
-            }
 
-            async function init() {
-                setStatus("Iniciando...", "info");
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                    stream.getTracks().forEach(t => t.stop());
-                    const devices = await navigator.mediaDevices.enumerateDevices();
-                    const cameras = devices.filter(d => d.kind === "videoinput");
-                    if (cameras.length) {
-                        cameraSelect.innerHTML = "";
-                        cameras.forEach(cam => {
-                            const opt = document.createElement("option");
-                            opt.value = cam.deviceId;
-                            opt.textContent = cam.label || "Cámara";
-                            cameraSelect.appendChild(opt);
-                        });
-                        cameraSelect.disabled = false;
-                        cameraSelect.onchange = () => startCamera(cameraSelect.value);
-                        const backCam = cameras.find(c => c.label.toLowerCase().includes("back")) || cameras[0];
-                        await startCamera(backCam.deviceId);
-                    } else { await startCamera(null); }
-                } catch (e) {
-                    setStatus("No se pudo acceder a la cámara", "error");
-                    takePhotoBtn.disabled = true;
-                    uploadFileBtn.style.display = "block";
-                }
+                tablaBody.innerHTML = filasHtml;
+
+            } catch (error) {
+                console.error("Error:", error);
+                errorDiv.classList.remove("d-none");
+                errorDiv.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i> Error al cargar: ${error.message}. Verifica la conexión o CORS.`;
+                tablaBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center py-4">
+                            <button class="btn btn-primary btn-sm" onclick="location.reload()">
+                                <i class="bi bi-arrow-repeat"></i> Reintentar
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                contadorBadge.textContent = "Error";
+                contadorBadge.className = "badge bg-danger";
             }
-            init();
-            navigator.mediaDevices.addEventListener("devicechange", () => init());
-        })();
+        }
+
+        // Botón refrescar manual
+        btnRefrescar.addEventListener("click", () => {
+            cargarTabla();
+        });
+
+        // Cargar al inicio
+        cargarTabla();
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </body>
 
 </html>
