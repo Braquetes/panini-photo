@@ -4,10 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mundial Social - Lista de archivos</title>
+    <title>Mundial Social - Visor de Archivos por Día</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Flatpickr (Calendar moderno y ligero) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
         body {
             background: #f8f9fc;
@@ -57,6 +59,45 @@
             display: inline-block;
             text-align: left;
         }
+
+        /* Estilos para el selector de fecha */
+        .date-picker-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            padding: 0.75rem 1.25rem;
+            transition: all 0.2s ease;
+        }
+
+        .date-picker-card:hover {
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
+        }
+
+        .folder-badge {
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-custom-date {
+            background-color: #2c3e66;
+            border-color: #2c3e66;
+            color: white;
+        }
+
+        .btn-custom-date:hover {
+            background-color: #1f2c4a;
+            border-color: #1f2c4a;
+            color: white;
+        }
+
+        .range-info {
+            font-size: 0.75rem;
+            color: #6c757d;
+            border-left: 3px solid #2c3e66;
+            padding-left: 0.65rem;
+            margin-top: 0.5rem;
+        }
     </style>
 </head>
 
@@ -65,28 +106,55 @@
     <nav class="navbar navbar-light bg-white shadow-sm">
         <div class="container">
             <span class="navbar-brand">
-                <i class="bi bi-table me-2"></i> Mundial Social · DIF Oaxaca
+                <i class="bi bi-calendar-week me-2"></i> Mundial Social · DIF Oaxaca
             </span>
-            <button class="btn btn-outline-secondary btn-sm" id="btnRefrescar">
-                <i class="bi bi-arrow-clockwise"></i> Recargar
-            </button>
+            <div>
+                <button class="btn btn-outline-secondary btn-sm me-2" id="btnRefrescar">
+                    <i class="bi bi-arrow-clockwise"></i> Recargar día actual
+                </button>
+            </div>
         </div>
     </nav>
 
     <div class="container my-4">
+        <!-- Panel de selección de día (calendario) -->
+        <div class="row justify-content-center mb-4">
+            <div class="col-lg-8 col-md-10">
+                <div class="date-picker-card d-flex flex-wrap align-items-center justify-content-between gap-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-calendar3 fs-4 text-primary"></i>
+                        <span class="fw-semibold">Seleccionar fecha (Junio 2026 - Agosto 2026):</span>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+                        <input type="text" id="datepickerInput" class="form-control" style="width: 200px;" placeholder="Elige un día">
+                        <button id="btnCargarFecha" class="btn btn-custom-date btn-sm px-3">
+                            <i class="bi bi-folder-symlink"></i> Ver archivos
+                        </button>
+                        <span class="badge bg-light text-dark border rounded-pill px-3 py-2 folder-badge" id="folderPreview">
+                            <i class="bi bi-folder"></i> <span id="folderNameDisplay">04062026</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="range-info mt-2 text-center">
+                    <i class="bi bi-info-circle-fill me-1"></i> Rango permitido: desde <strong>01 junio 2026</strong> hasta <strong>31 agosto 2026</strong>. 
+                    El formato de carpeta es <code>DDMMYYYY</code> (p.ej. 04062026 = 4 de junio 2026)
+                </div>
+            </div>
+        </div>
+
+        <!-- Contador y tabla -->
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2 class="h5 fw-semibold mb-0"><i class="bi bi-folder2-open me-1"></i> Lista de archivos</h2>
+            <h2 class="h5 fw-semibold mb-0"><i class="bi bi-folder2-open me-1"></i> Lista de archivos · Carpeta actual</h2>
             <span class="badge bg-secondary" id="contadorBadge">Cargando...</span>
         </div>
 
         <div id="errorMsg" class="alert alert-danger d-none" role="alert"></div>
 
-        <!-- Wrapper para centrar la tabla pero que se ajuste al contenido -->
+        <!-- Wrapper centrado para tabla dinámica -->
         <div class="wrapper">
             <div class="content-wrapper">
                 <div class="table-responsive">
-                    <table class="table table-bordered table-hover align-middle" id="tablaArchivos"
-                        style="width: auto; min-width: auto;">
+                    <table class="table table-bordered table-hover align-middle" id="tablaArchivos" style="width: auto; min-width: auto;">
                         <thead>
                             <tr>
                                 <th style="width: auto">ID</th>
@@ -109,52 +177,101 @@
     </div>
 
     <footer class="text-center text-muted py-3">
-        <small>Ordenado por ID (más reciente primero) | Los datos se obtienen directamente desde la API</small>
+        <small>Ordenado por ID (más reciente primero) | Los datos se obtienen desde: <span id="apiUrlPreview">https://apifilemanager.difoaxaca.gob.mx/mundial_social/04062026</span></small>
     </footer>
 
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+    
     <script>
-        const API_URL = "https://apifilemanager.difoaxaca.gob.mx/mundial_social/04062026";
+        // ---------- CONFIGURACIÓN ----------
+        // URL base de la API
+        const BASE_API = "https://apifilemanager.difoaxaca.gob.mx/mundial_social";
+        
+        // Fecha por defecto: 4 de junio 2026 (04062026) según requerimiento inicial
+        let currentFolderName = "04062026";   // DDMMYYYY
+        let currentDateObj = new Date(2026, 5, 4); // Mes 5 = junio (0-index)
+        
+        // Límites: desde 1 junio 2026 hasta 31 agosto 2026
+        const MIN_DATE = new Date(2026, 5, 1);   // 01/06/2026
+        const MAX_DATE = new Date(2026, 7, 31);  // 31/08/2026
+        
+        // Elementos DOM
         const tablaBody = document.getElementById("tablaBody");
         const contadorBadge = document.getElementById("contadorBadge");
         const errorDiv = document.getElementById("errorMsg");
         const btnRefrescar = document.getElementById("btnRefrescar");
-
+        const btnCargarFecha = document.getElementById("btnCargarFecha");
+        const datepickerInput = document.getElementById("datepickerInput");
+        const folderNameDisplaySpan = document.getElementById("folderNameDisplay");
+        const apiUrlPreviewSpan = document.getElementById("apiUrlPreview");
+        
+        // ---------- UTILIDADES ----------
+        function formatDateToDDMMYYYY(date) {
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}${month}${year}`;
+        }
+        
+        // Validar si la fecha está dentro del rango Junio-Agosto 2026
+        function isDateInRange(date) {
+            return date >= MIN_DATE && date <= MAX_DATE;
+        }
+        
+        // Actualizar vista de carpeta y URL preview
+        function updateFolderUI(folderName) {
+            folderNameDisplaySpan.textContent = folderName;
+            const fullApiUrl = `${BASE_API}/${folderName}`;
+            apiUrlPreviewSpan.textContent = fullApiUrl;
+        }
+        
+        // Construir URL completa para imagen
         function construirUrlImagen(ruta) {
             return "https://apifilemanager.difoaxaca.gob.mx/" + ruta;
         }
-
+        
+        // Cargar archivos desde la carpeta actual (currentFolderName)
         async function cargarTabla() {
-            // Mostrar loading
+            // Mostrar loading en tabla
             tablaBody.innerHTML = `
                 <tr>
                     <td colspan="3" class="text-center py-4">
                         <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-                        Cargando datos desde el servidor...
+                        Cargando datos desde ${currentFolderName} ...
                     </td>
                 </tr>
             `;
             errorDiv.classList.add("d-none");
             contadorBadge.textContent = "Cargando...";
             contadorBadge.className = "badge bg-secondary";
-
+            
+            const API_URL = `${BASE_API}/${currentFolderName}`;
+            
             try {
                 const response = await fetch(API_URL);
                 if (!response.ok) {
-                    throw new Error(`Error HTTP ${response.status}: ${response.statusText}`);
+                    // Si el servidor responde 404 o similar, puede que no exista esa carpeta (sin archivos)
+                    if (response.status === 404) {
+                        throw new Error(`No se encontraron datos para la fecha ${currentFolderName}. Puede que no haya archivos registrados o la carpeta no exista.`);
+                    } else {
+                        throw new Error(`Error HTTP ${response.status}: ${response.statusText}`);
+                    }
                 }
                 const data = await response.json();
-
+                
                 if (!data || !Array.isArray(data.archivos)) {
                     throw new Error("La respuesta no contiene un array 'archivos' válido.");
                 }
-
+                
                 let archivos = data.archivos;
-
+                
                 if (archivos.length === 0) {
                     tablaBody.innerHTML = `
                         <tr>
                             <td colspan="3" class="text-center py-4 text-muted">
-                                <i class="bi bi-inbox fs-4"></i><br>No se encontraron archivos
+                                <i class="bi bi-inbox fs-4"></i><br>No se encontraron archivos para la carpeta ${currentFolderName}
                             </td>
                         </tr>
                     `;
@@ -162,26 +279,26 @@
                     contadorBadge.className = "badge bg-secondary";
                     return;
                 }
-
-                // ORDENAR por ID de MAYOR a MENOR
+                
+                // Ordenar por ID de mayor a menor
                 archivos.sort((a, b) => b.Id - a.Id);
-
+                
                 contadorBadge.textContent = `${archivos.length} elemento(s) · ID ↓`;
                 contadorBadge.className = "badge bg-primary";
-
+                
                 let filasHtml = "";
                 for (const item of archivos) {
                     const id = item.Id;
                     const documento = item.Documento || "sin tipo";
                     const ruta = item.Ruta;
                     const urlCompleta = construirUrlImagen(ruta);
-
+                    
                     filasHtml += `
                         <tr>
                             <td class="id-col">${id}</td>
                             <td>
                                 <span class="badge bg-light text-dark border px-3 py-2">
-                                    <i class="bi bi-file-image me-1"></i> ${documento}
+                                    <i class="bi bi-file-image me-1"></i> ${escapeHtml(documento)}
                                 </span>
                             </td>
                             <td class="text-center">
@@ -192,32 +309,258 @@
                         </tr>
                     `;
                 }
-
+                
                 tablaBody.innerHTML = filasHtml;
-
+                
             } catch (error) {
-                console.error("Error:", error);
+                console.error("Error al cargar:", error);
                 errorDiv.classList.remove("d-none");
-                errorDiv.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i> Error al cargar: ${error.message}. Verifica la conexión o CORS.`;
+                errorDiv.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i> Error en carpeta [${currentFolderName}]: ${error.message}. Verifica que la fecha sea válida y existan archivos.`;
                 tablaBody.innerHTML = `
                     <tr>
                         <td colspan="3" class="text-center py-4">
-                            <button class="btn btn-primary btn-sm" onclick="location.reload()">
+                            <button class="btn btn-primary btn-sm" id="reintentarBtnLocal">
                                 <i class="bi bi-arrow-repeat"></i> Reintentar
                             </button>
                         </td>
                     </tr>
                 `;
+                // Agregar evento al botón de reintento dinámico
+                const retryBtn = document.getElementById("reintentarBtnLocal");
+                if (retryBtn) {
+                    retryBtn.addEventListener("click", () => cargarTabla());
+                }
                 contadorBadge.textContent = "Error";
                 contadorBadge.className = "badge bg-danger";
             }
         }
-
-        btnRefrescar.addEventListener("click", () => {
+        
+        // Función auxiliar para evitar XSS
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+                return c;
+            });
+        }
+        
+        // Cambiar de fecha (actualiza folder y recarga tabla)
+        function cambiarFecha(nuevaFecha) {
+            if (!isDateInRange(nuevaFecha)) {
+                const fechaFormateada = formatDateToDDMMYYYY(nuevaFecha);
+                errorDiv.classList.remove("d-none");
+                errorDiv.innerHTML = `<i class="bi bi-calendar-x me-2"></i> Fecha no permitida: ${fechaFormateada}. Solo se permiten fechas entre <strong>01/06/2026</strong> y <strong>31/08/2026</strong>.`;
+                // Ocultar error después de 4 segundos
+                setTimeout(() => {
+                    if (errorDiv.innerHTML.includes("Fecha no permitida")) {
+                        errorDiv.classList.add("d-none");
+                    }
+                }, 4000);
+                return false;
+            }
+            
+            // Actualizar carpeta y estado
+            currentDateObj = new Date(nuevaFecha);
+            currentFolderName = formatDateToDDMMYYYY(currentDateObj);
+            updateFolderUI(currentFolderName);
+            
+            // Limpiar errores previos
+            errorDiv.classList.add("d-none");
+            // Recargar tabla con nueva carpeta
             cargarTabla();
-        });
-
-        cargarTabla();
+            return true;
+        }
+        
+        // Inicializar Flatpickr (calendario con rango y localización en español)
+        function initDatePicker() {
+            flatpickr(datepickerInput, {
+                locale: 'es',
+                dateFormat: "d/m/Y",          // Formato visual: dd/mm/yyyy
+                minDate: MIN_DATE,
+                maxDate: MAX_DATE,
+                defaultDate: currentDateObj,   // 4 de junio 2026
+                allowInput: false,
+                onChange: function(selectedDates, dateStr, instance) {
+                    if (selectedDates.length > 0) {
+                        const pickedDate = selectedDates[0];
+                        // Actualiza automáticamente la vista previa del folder pero sin cargar aún
+                        const tempFolder = formatDateToDDMMYYYY(pickedDate);
+                        document.getElementById("folderPreview").innerHTML = `<i class="bi bi-folder"></i> <span id="folderNameDisplay">${tempFolder}</span>`;
+                        // solo preview visual, no carga automática hasta botón.
+                        // restauramos después? mejor sincronizar: actualizamos solo la previsualización
+                        const folderSpan = document.getElementById("folderNameDisplay");
+                        if (folderSpan) folderSpan.textContent = tempFolder;
+                    }
+                }
+            });
+            
+            // Sincronizar el valor inicial
+            datepickerInput.value = "04/06/2026";
+        }
+        
+        // Evento del botón "Ver archivos" - toma la fecha del picker
+        function onBtnCargarFechaClick() {
+            // Obtener fecha desde el input del calendario
+            const inputDateStr = datepickerInput.value;
+            if (!inputDateStr) {
+                errorDiv.classList.remove("d-none");
+                errorDiv.innerHTML = `<i class="bi bi-exclamation-circle"></i> Por favor selecciona una fecha válida.`;
+                setTimeout(() => errorDiv.classList.add("d-none"), 3000);
+                return;
+            }
+            
+            // Parsear fecha en formato dd/mm/yyyy (flatpickr entrega así)
+            const partes = inputDateStr.split('/');
+            if (partes.length !== 3) {
+                errorDiv.classList.remove("d-none");
+                errorDiv.innerHTML = `<i class="bi bi-exclamation-circle"></i> Formato de fecha inválido. Usa dd/mm/aaaa.`;
+                return;
+            }
+            const dia = parseInt(partes[0], 10);
+            const mes = parseInt(partes[1], 10) - 1; // Mes 0-index
+            const año = parseInt(partes[2], 10);
+            
+            const fechaSeleccionada = new Date(año, mes, dia);
+            if (isNaN(fechaSeleccionada.getTime())) {
+                errorDiv.classList.remove("d-none");
+                errorDiv.innerHTML = `<i class="bi bi-exclamation-circle"></i> Fecha no válida.`;
+                return;
+            }
+            
+            // Validar rango nuevamente
+            if (!isDateInRange(fechaSeleccionada)) {
+                errorDiv.classList.remove("d-none");
+                errorDiv.innerHTML = `<i class="bi bi-calendar-x me-2"></i> Fecha fuera de rango (Junio - Agosto 2026). Selecciona otra fecha.`;
+                setTimeout(() => errorDiv.classList.add("d-none"), 4000);
+                return;
+            }
+            
+            // Cambiar fecha y cargar datos
+            cambiarFecha(fechaSeleccionada);
+            // Asegurar que el folder preview se actualice con la fecha correcta ya que cambiarFecha actualiza UI y recarga
+        }
+        
+        // Evento refrescar día actual (recarga la misma carpeta vigente)
+        function onRefrescar() {
+            cargarTabla();
+            // Opcional mostrar notificación ligera
+            const toastMsg = document.createElement('div');
+            toastMsg.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
+            toastMsg.style.zIndex = '1050';
+            toastMsg.style.fontSize = '0.8rem';
+            toastMsg.innerHTML = `<i class="bi bi-check-circle me-1"></i> Recargando carpeta ${currentFolderName}...`;
+            document.body.appendChild(toastMsg);
+            setTimeout(() => {
+                toastMsg.classList.remove('show');
+                setTimeout(() => toastMsg.remove(), 300);
+            }, 1500);
+        }
+        
+        // Sincronizar el folder desde fecha por defecto al inicio
+        function setDefaultDate() {
+            const defaultDate = new Date(2026, 5, 4);
+            currentDateObj = defaultDate;
+            currentFolderName = formatDateToDDMMYYYY(defaultDate);
+            updateFolderUI(currentFolderName);
+            if (datepickerInput) datepickerInput.value = "04/06/2026";
+            cargarTabla();
+        }
+        
+        // ---------- Navegación rápida con botones de día anterior/siguiente (extra opcional) ----------
+        function agregarControlesNavegacion() {
+            // Insertar botones de día anterior/siguiente dentro del card para mejor UX
+            const parentDiv = document.querySelector('.date-picker-card .d-flex.flex-wrap.align-items-center.gap-3');
+            if (parentDiv) {
+                const btnPrev = document.createElement('button');
+                btnPrev.className = 'btn btn-outline-secondary btn-sm';
+                btnPrev.innerHTML = '<i class="bi bi-chevron-left"></i> Día anterior';
+                btnPrev.title = 'Día anterior (dentro del rango Jun-Ago 2026)';
+                btnPrev.addEventListener('click', () => {
+                    const newDate = new Date(currentDateObj);
+                    newDate.setDate(newDate.getDate() - 1);
+                    if (isDateInRange(newDate)) {
+                        cambiarFecha(newDate);
+                        // Actualizar input flatpickr
+                        if (datepickerInput && datepickerInput._flatpickr) {
+                            datepickerInput._flatpickr.setDate(newDate);
+                        } else {
+                            datepickerInput.value = formatDateToDDMMYYYY(newDate).replace(/(\d{2})(\d{2})(\d{4})/, '$1/$2/$3');
+                        }
+                    } else {
+                        errorDiv.classList.remove("d-none");
+                        errorDiv.innerHTML = `<i class="bi bi-calendar-range"></i> Límite de rango alcanzado (Junio-Agosto 2026).`;
+                        setTimeout(() => errorDiv.classList.add("d-none"), 2500);
+                    }
+                });
+                
+                const btnNext = document.createElement('button');
+                btnNext.className = 'btn btn-outline-secondary btn-sm';
+                btnNext.innerHTML = 'Día siguiente <i class="bi bi-chevron-right"></i>';
+                btnNext.title = 'Día siguiente (dentro del rango)';
+                btnNext.addEventListener('click', () => {
+                    const newDate = new Date(currentDateObj);
+                    newDate.setDate(newDate.getDate() + 1);
+                    if (isDateInRange(newDate)) {
+                        cambiarFecha(newDate);
+                        if (datepickerInput && datepickerInput._flatpickr) {
+                            datepickerInput._flatpickr.setDate(newDate);
+                        } else {
+                            datepickerInput.value = formatDateToDDMMYYYY(newDate).replace(/(\d{2})(\d{2})(\d{4})/, '$1/$2/$3');
+                        }
+                    } else {
+                        errorDiv.classList.remove("d-none");
+                        errorDiv.innerHTML = `<i class="bi bi-calendar-range"></i> Límite de rango alcanzado (Junio-Agosto 2026).`;
+                        setTimeout(() => errorDiv.classList.add("d-none"), 2500);
+                    }
+                });
+                
+                // Insertar después del botón "Ver archivos" pero antes del folder badge
+                const btnCargar = document.getElementById('btnCargarFecha');
+                if (btnCargar && parentDiv) {
+                    parentDiv.insertBefore(btnPrev, btnCargar.nextSibling);
+                    parentDiv.insertBefore(btnNext, btnPrev.nextSibling);
+                }
+            }
+        }
+        
+        // ---------- EVENTOS Y ARRANQUE ----------
+        function bindEvents() {
+            btnRefrescar.addEventListener("click", onRefrescar);
+            btnCargarFecha.addEventListener("click", onBtnCargarFechaClick);
+        }
+        
+        // Inicialización completa
+        function init() {
+            initDatePicker();
+            setDefaultDate();   // Carga la tabla con 04062026
+            bindEvents();
+            agregarControlesNavegacion();   // Botones extra para día siguiente/anterior
+            
+            // Ajuste adicional: Si el usuario quiere ver la preview de carpeta al cambiar manualmente el input
+            datepickerInput.addEventListener('change', function() {
+                const rawValue = this.value;
+                if (rawValue) {
+                    const parts = rawValue.split('/');
+                    if (parts.length === 3) {
+                        const d = parseInt(parts[0],10);
+                        const m = parseInt(parts[1],10)-1;
+                        const y = parseInt(parts[2],10);
+                        const tentativeDate = new Date(y,m,d);
+                        if (!isNaN(tentativeDate) && isDateInRange(tentativeDate)) {
+                            const folderTemp = formatDateToDDMMYYYY(tentativeDate);
+                            const tempSpan = document.getElementById("folderNameDisplay");
+                            if (tempSpan) tempSpan.textContent = folderTemp;
+                        }
+                    }
+                }
+            });
+        }
+        
+        init();
     </script>
 </body>
 
