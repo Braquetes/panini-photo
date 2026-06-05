@@ -189,13 +189,28 @@
         // URL base de la API
         const BASE_API = "https://apifilemanager.difoaxaca.gob.mx/mundial_social";
         
-        // Fecha por defecto: 4 de junio 2026 (04062026) según requerimiento inicial
-        let currentFolderName = "04062026";   // DDMMYYYY
-        let currentDateObj = new Date(2026, 5, 4); // Mes 5 = junio (0-index)
+        // FECHA POR DEFECTO: HOY (fecha actual del sistema)
+        const today = new Date();
         
         // Límites: desde 1 junio 2026 hasta 31 agosto 2026
         const MIN_DATE = new Date(2026, 5, 1);   // 01/06/2026
         const MAX_DATE = new Date(2026, 7, 31);  // 31/08/2026
+        
+        // Validar si la fecha de hoy está dentro del rango permitido
+        let defaultDateObj;
+        let defaultFolderName;
+        
+        if (today >= MIN_DATE && today <= MAX_DATE) {
+            defaultDateObj = new Date(today);
+            defaultFolderName = formatDateToDDMMYYYY(defaultDateObj);
+        } else {
+            // Si hoy está fuera del rango (antes de junio o después de agosto 2026), usar el 4 de junio 2026 como fallback
+            defaultDateObj = new Date(2026, 5, 4);
+            defaultFolderName = "04062026";
+        }
+        
+        let currentFolderName = defaultFolderName;
+        let currentDateObj = new Date(defaultDateObj);
         
         // Elementos DOM
         const tablaBody = document.getElementById("tablaBody");
@@ -213,6 +228,13 @@
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const year = date.getFullYear();
             return `${day}${month}${year}`;
+        }
+        
+        function formatDateToDDMMYYYYslashed(date) {
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
         }
         
         // Validar si la fecha está dentro del rango Junio-Agosto 2026
@@ -252,7 +274,6 @@
             try {
                 const response = await fetch(API_URL);
                 if (!response.ok) {
-                    // Si el servidor responde 404 o similar, puede que no exista esa carpeta (sin archivos)
                     if (response.status === 404) {
                         throw new Error(`No se encontraron datos para la fecha ${currentFolderName}. Puede que no haya archivos registrados o la carpeta no exista.`);
                     } else {
@@ -325,7 +346,6 @@
                         </td>
                     </tr>
                 `;
-                // Agregar evento al botón de reintento dinámico
                 const retryBtn = document.getElementById("reintentarBtnLocal");
                 if (retryBtn) {
                     retryBtn.addEventListener("click", () => cargarTabla());
@@ -354,7 +374,6 @@
                 const fechaFormateada = formatDateToDDMMYYYY(nuevaFecha);
                 errorDiv.classList.remove("d-none");
                 errorDiv.innerHTML = `<i class="bi bi-calendar-x me-2"></i> Fecha no permitida: ${fechaFormateada}. Solo se permiten fechas entre <strong>01/06/2026</strong> y <strong>31/08/2026</strong>.`;
-                // Ocultar error después de 4 segundos
                 setTimeout(() => {
                     if (errorDiv.innerHTML.includes("Fecha no permitida")) {
                         errorDiv.classList.add("d-none");
@@ -363,48 +382,41 @@
                 return false;
             }
             
-            // Actualizar carpeta y estado
             currentDateObj = new Date(nuevaFecha);
             currentFolderName = formatDateToDDMMYYYY(currentDateObj);
             updateFolderUI(currentFolderName);
             
-            // Limpiar errores previos
             errorDiv.classList.add("d-none");
-            // Recargar tabla con nueva carpeta
             cargarTabla();
             return true;
         }
         
         // Inicializar Flatpickr (calendario con rango y localización en español)
         function initDatePicker() {
+            const defaultSlashed = formatDateToDDMMYYYYslashed(defaultDateObj);
+            
             flatpickr(datepickerInput, {
                 locale: 'es',
-                dateFormat: "d/m/Y",          // Formato visual: dd/mm/yyyy
+                dateFormat: "d/m/Y",
                 minDate: MIN_DATE,
                 maxDate: MAX_DATE,
-                defaultDate: currentDateObj,   // 4 de junio 2026
+                defaultDate: defaultDateObj,
                 allowInput: false,
                 onChange: function(selectedDates, dateStr, instance) {
                     if (selectedDates.length > 0) {
                         const pickedDate = selectedDates[0];
-                        // Actualiza automáticamente la vista previa del folder pero sin cargar aún
                         const tempFolder = formatDateToDDMMYYYY(pickedDate);
-                        document.getElementById("folderPreview").innerHTML = `<i class="bi bi-folder"></i> <span id="folderNameDisplay">${tempFolder}</span>`;
-                        // solo preview visual, no carga automática hasta botón.
-                        // restauramos después? mejor sincronizar: actualizamos solo la previsualización
                         const folderSpan = document.getElementById("folderNameDisplay");
                         if (folderSpan) folderSpan.textContent = tempFolder;
                     }
                 }
             });
             
-            // Sincronizar el valor inicial
-            datepickerInput.value = "04/06/2026";
+            datepickerInput.value = defaultSlashed;
         }
         
-        // Evento del botón "Ver archivos" - toma la fecha del picker
+        // Evento del botón "Ver archivos"
         function onBtnCargarFechaClick() {
-            // Obtener fecha desde el input del calendario
             const inputDateStr = datepickerInput.value;
             if (!inputDateStr) {
                 errorDiv.classList.remove("d-none");
@@ -413,7 +425,6 @@
                 return;
             }
             
-            // Parsear fecha en formato dd/mm/yyyy (flatpickr entrega así)
             const partes = inputDateStr.split('/');
             if (partes.length !== 3) {
                 errorDiv.classList.remove("d-none");
@@ -421,7 +432,7 @@
                 return;
             }
             const dia = parseInt(partes[0], 10);
-            const mes = parseInt(partes[1], 10) - 1; // Mes 0-index
+            const mes = parseInt(partes[1], 10) - 1;
             const año = parseInt(partes[2], 10);
             
             const fechaSeleccionada = new Date(año, mes, dia);
@@ -431,7 +442,6 @@
                 return;
             }
             
-            // Validar rango nuevamente
             if (!isDateInRange(fechaSeleccionada)) {
                 errorDiv.classList.remove("d-none");
                 errorDiv.innerHTML = `<i class="bi bi-calendar-x me-2"></i> Fecha fuera de rango (Junio - Agosto 2026). Selecciona otra fecha.`;
@@ -439,15 +449,17 @@
                 return;
             }
             
-            // Cambiar fecha y cargar datos
             cambiarFecha(fechaSeleccionada);
-            // Asegurar que el folder preview se actualice con la fecha correcta ya que cambiarFecha actualiza UI y recarga
+            
+            // Sincronizar flatpickr si es necesario
+            if (datepickerInput && datepickerInput._flatpickr) {
+                datepickerInput._flatpickr.setDate(fechaSeleccionada);
+            }
         }
         
         // Evento refrescar día actual (recarga la misma carpeta vigente)
         function onRefrescar() {
             cargarTabla();
-            // Opcional mostrar notificación ligera
             const toastMsg = document.createElement('div');
             toastMsg.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
             toastMsg.style.zIndex = '1050';
@@ -460,19 +472,16 @@
             }, 1500);
         }
         
-        // Sincronizar el folder desde fecha por defecto al inicio
+        // Configurar fecha default y cargar
         function setDefaultDate() {
-            const defaultDate = new Date(2026, 5, 4);
-            currentDateObj = defaultDate;
-            currentFolderName = formatDateToDDMMYYYY(defaultDate);
+            currentDateObj = new Date(defaultDateObj);
+            currentFolderName = defaultFolderName;
             updateFolderUI(currentFolderName);
-            if (datepickerInput) datepickerInput.value = "04/06/2026";
             cargarTabla();
         }
         
-        // ---------- Navegación rápida con botones de día anterior/siguiente (extra opcional) ----------
+        // Botones de navegación día anterior/siguiente
         function agregarControlesNavegacion() {
-            // Insertar botones de día anterior/siguiente dentro del card para mejor UX
             const parentDiv = document.querySelector('.date-picker-card .d-flex.flex-wrap.align-items-center.gap-3');
             if (parentDiv) {
                 const btnPrev = document.createElement('button');
@@ -484,11 +493,10 @@
                     newDate.setDate(newDate.getDate() - 1);
                     if (isDateInRange(newDate)) {
                         cambiarFecha(newDate);
-                        // Actualizar input flatpickr
                         if (datepickerInput && datepickerInput._flatpickr) {
                             datepickerInput._flatpickr.setDate(newDate);
                         } else {
-                            datepickerInput.value = formatDateToDDMMYYYY(newDate).replace(/(\d{2})(\d{2})(\d{4})/, '$1/$2/$3');
+                            datepickerInput.value = formatDateToDDMMYYYYslashed(newDate);
                         }
                     } else {
                         errorDiv.classList.remove("d-none");
@@ -509,7 +517,7 @@
                         if (datepickerInput && datepickerInput._flatpickr) {
                             datepickerInput._flatpickr.setDate(newDate);
                         } else {
-                            datepickerInput.value = formatDateToDDMMYYYY(newDate).replace(/(\d{2})(\d{2})(\d{4})/, '$1/$2/$3');
+                            datepickerInput.value = formatDateToDDMMYYYYslashed(newDate);
                         }
                     } else {
                         errorDiv.classList.remove("d-none");
@@ -518,7 +526,6 @@
                     }
                 });
                 
-                // Insertar después del botón "Ver archivos" pero antes del folder badge
                 const btnCargar = document.getElementById('btnCargarFecha');
                 if (btnCargar && parentDiv) {
                     parentDiv.insertBefore(btnPrev, btnCargar.nextSibling);
@@ -527,7 +534,7 @@
             }
         }
         
-        // ---------- EVENTOS Y ARRANQUE ----------
+        // Eventos principales
         function bindEvents() {
             btnRefrescar.addEventListener("click", onRefrescar);
             btnCargarFecha.addEventListener("click", onBtnCargarFechaClick);
@@ -536,11 +543,10 @@
         // Inicialización completa
         function init() {
             initDatePicker();
-            setDefaultDate();   // Carga la tabla con 04062026
+            setDefaultDate();
             bindEvents();
-            agregarControlesNavegacion();   // Botones extra para día siguiente/anterior
+            agregarControlesNavegacion();
             
-            // Ajuste adicional: Si el usuario quiere ver la preview de carpeta al cambiar manualmente el input
             datepickerInput.addEventListener('change', function() {
                 const rawValue = this.value;
                 if (rawValue) {
